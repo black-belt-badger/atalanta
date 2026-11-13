@@ -1,0 +1,741 @@
+{
+  "formatVersion": 1,
+  "fixtureSet": "alpaca-trading-read-only",
+  "revision": "1.0.0",
+  "source": "Synthetic test cases maintained in Atalanta M3; no real account data",
+  "cases": [
+    {
+      "id": "account.full",
+      "operation": "account",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/account",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/account-full.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "checks": [
+          {
+            "pointer": "/value/status",
+            "value": "ACTIVE"
+          },
+          {
+            "pointer": "/value/crypto_status",
+            "value": "APPROVED"
+          },
+          {
+            "pointer": "/value/cash",
+            "value": "123456789.123456789012345678901234567890"
+          },
+          {
+            "pointer": "/value/details/options_approved_level",
+            "value": 3
+          },
+          {
+            "pointer": "/value/supplied/daytrading_buying_power",
+            "value": true
+          },
+          {
+            "pointer": "/value/extensions/admin_configurations/new_feature/enabled",
+            "value": true
+          },
+          {
+            "pointer": "/value/extensions/novel_balance/precise",
+            "value": "123456789.1234567890123456789"
+          }
+        ]
+      }
+    },
+    {
+      "id": "account.minimal_future",
+      "operation": "account",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/account",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/account-minimal.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "checks": [
+          {
+            "pointer": "/value/status",
+            "value": "NEW_FUTURE_STATUS"
+          },
+          {
+            "pointer": "/value/cash",
+            "value": null
+          },
+          {
+            "pointer": "/value/supplied/cash",
+            "value": true
+          },
+          {
+            "pointer": "/value/supplied/equity",
+            "value": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "account.legacy",
+      "operation": "account",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/account",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/account-legacy.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "checks": [
+          {
+            "pointer": "/value/details/daytrade_count",
+            "value": 3
+          },
+          {
+            "pointer": "/value/details/pattern_day_trader",
+            "value": true
+          },
+          {
+            "pointer": "/value/details/daytrading_buying_power",
+            "value": "100.000000000001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "account.unauthorized",
+      "operation": "account",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/account",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 401,
+        "body": "fixtures/error-private.json"
+      },
+      "expected": {
+        "outcome": "error",
+        "error": "Authentication"
+      }
+    },
+    {
+      "id": "account.invalid_payload",
+      "operation": "account",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/account",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/invalid-object.json"
+      },
+      "expected": {
+        "outcome": "error",
+        "error": "InvalidResponse"
+      }
+    },
+    {
+      "id": "assets.default",
+      "operation": "assets",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/assets",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/assets-mixed.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 4,
+        "checks": [
+          {
+            "pointer": "/items/0/symbol",
+            "value": "AAPL"
+          },
+          {
+            "pointer": "/items/1/asset_class",
+            "value": "crypto"
+          },
+          {
+            "pointer": "/items/1/symbol",
+            "value": "BTC/USD"
+          },
+          {
+            "pointer": "/items/1/min_trade_increment",
+            "value": "0.00000000000001"
+          },
+          {
+            "pointer": "/items/2/status",
+            "value": "FUTURE_STATUS"
+          }
+        ]
+      }
+    },
+    {
+      "id": "assets.crypto_active",
+      "operation": "assets",
+      "input": {
+        "asset_class": "crypto",
+        "status": "active"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/assets",
+        "rawQuery": "status=active&asset_class=crypto"
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/assets-crypto-only.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 1,
+        "checks": [
+          {
+            "pointer": "/items/0/symbol",
+            "value": "BTC/USD"
+          },
+          {
+            "pointer": "/items/0/min_order_size",
+            "value": "0.000000010000000001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "assets.filtered_equity",
+      "operation": "assets",
+      "input": {
+        "asset_class": "us_equity",
+        "status": "active",
+        "exchanges": [
+          "NASDAQ",
+          "NYSE"
+        ],
+        "attributes": [
+          "has_options",
+          "overnight_tradable"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/assets",
+        "rawQuery": "status=active&asset_class=us_equity&exchange=NASDAQ%2CNYSE&attributes=has_options%2Covernight_tradable"
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/assets-equity-only.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 1,
+        "checks": [
+          {
+            "pointer": "/items/0/symbol",
+            "value": "AAPL"
+          },
+          {
+            "pointer": "/items/0/borrow_status",
+            "value": "easy_to_borrow"
+          },
+          {
+            "pointer": "/items/0/supplied/cusip",
+            "value": true
+          },
+          {
+            "pointer": "/items/0/extensions/future/decimals",
+            "value": "0.12345678901234567890123456789012345"
+          }
+        ]
+      }
+    },
+    {
+      "id": "assets.empty",
+      "operation": "assets",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/assets",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/empty-array.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 0
+      }
+    },
+    {
+      "id": "assets.rate_limited",
+      "operation": "assets",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/assets",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 429,
+        "body": "fixtures/error-private.json"
+      },
+      "expected": {
+        "outcome": "error",
+        "error": "RateLimited"
+      }
+    },
+    {
+      "id": "assets.invalid_shape",
+      "operation": "assets",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/assets",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/invalid-object.json"
+      },
+      "expected": {
+        "outcome": "error",
+        "error": "InvalidResponse"
+      }
+    },
+    {
+      "id": "positions.open_mixed",
+      "operation": "positions",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/positions",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/positions-mixed.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 6,
+        "checks": [
+          {
+            "pointer": "/items/0/symbol",
+            "value": "AAPL"
+          },
+          {
+            "pointer": "/items/1/symbol",
+            "value": "BTC/USD"
+          },
+          {
+            "pointer": "/items/1/qty",
+            "value": "0.000997498123456789012345678901"
+          },
+          {
+            "pointer": "/items/1/unrealized_pl",
+            "value": "-0.023456789012345677"
+          },
+          {
+            "pointer": "/items/3/current_price",
+            "value": null
+          },
+          {
+            "pointer": "/items/3/supplied/current_price",
+            "value": true
+          },
+          {
+            "pointer": "/items/4/usd/market_value",
+            "value": "27.069823"
+          },
+          {
+            "pointer": "/items/4/swap_rate",
+            "value": "146.179"
+          }
+        ]
+      }
+    },
+    {
+      "id": "positions.empty",
+      "operation": "positions",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/positions",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/empty-array.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 0
+      }
+    },
+    {
+      "id": "positions.invalid_shape",
+      "operation": "positions",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/positions",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/invalid-object.json"
+      },
+      "expected": {
+        "outcome": "error",
+        "error": "InvalidResponse"
+      }
+    },
+    {
+      "id": "orders.default",
+      "operation": "orders",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/orders-mixed.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 6,
+        "checks": [
+          {
+            "pointer": "/items/0/status",
+            "value": "partially_filled"
+          },
+          {
+            "pointer": "/items/1/notional",
+            "value": "25.1234567890123456789012345"
+          },
+          {
+            "pointer": "/items/2/side",
+            "value": null
+          },
+          {
+            "pointer": "/items/2/legs/0/ratio_qty",
+            "value": "1.000000000000000001"
+          },
+          {
+            "pointer": "/items/2/legs/1/ratio_qty",
+            "value": "2.000000000000000002"
+          },
+          {
+            "pointer": "/items/4/status",
+            "value": "new"
+          }
+        ]
+      }
+    },
+    {
+      "id": "orders.filtered",
+      "operation": "orders",
+      "input": {
+        "status": "all",
+        "limit": 100,
+        "after": "2026-11-01T00:00:00Z",
+        "until": "2026-11-13T00:00:00Z",
+        "direction": "asc",
+        "nested": true,
+        "symbols": [
+          "AAPL"
+        ],
+        "side": "buy",
+        "asset_classes": [
+          "us_equity"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders",
+        "rawQuery": "status=all&limit=100&after=2026-11-01T00%3A00%3A00Z&until=2026-11-13T00%3A00%3A00Z&direction=asc&nested=true&symbols=AAPL&side=buy&asset_class=us_equity"
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/orders-equity-only.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 1,
+        "checks": [
+          {
+            "pointer": "/items/0/symbol",
+            "value": "AAPL"
+          },
+          {
+            "pointer": "/items/0/filled_qty",
+            "value": "2.000000000000000001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "orders.cursor_after",
+      "operation": "orders",
+      "input": {
+        "after_order_id": "11111111-2222-4333-8444-555555555555"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders",
+        "rawQuery": "after_order_id=11111111-2222-4333-8444-555555555555"
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/empty-array.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 0
+      }
+    },
+    {
+      "id": "orders.empty",
+      "operation": "orders",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/empty-array.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "count": 0
+      }
+    },
+    {
+      "id": "orders.invalid_shape",
+      "operation": "orders",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/invalid-object.json"
+      },
+      "expected": {
+        "outcome": "error",
+        "error": "InvalidResponse"
+      }
+    },
+    {
+      "id": "orders.server_error",
+      "operation": "orders",
+      "input": {},
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 503,
+        "body": "fixtures/error-private.json"
+      },
+      "expected": {
+        "outcome": "error",
+        "error": "HttpFailure"
+      }
+    },
+    {
+      "id": "order_by_id.found",
+      "operation": "order_by_id",
+      "input": {
+        "id": "11111111-2222-4333-8444-555555555555"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders/11111111-2222-4333-8444-555555555555",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/order-equity.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "checks": [
+          {
+            "pointer": "/value/id",
+            "value": "11111111-2222-4333-8444-555555555555"
+          },
+          {
+            "pointer": "/value/status",
+            "value": "partially_filled"
+          },
+          {
+            "pointer": "/value/qty",
+            "value": "5.123456789012345678901"
+          }
+        ]
+      }
+    },
+    {
+      "id": "order_by_id.nested_options",
+      "operation": "order_by_id",
+      "input": {
+        "id": "55555555-6666-4777-8888-999999999999",
+        "nested": true
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders/55555555-6666-4777-8888-999999999999",
+        "rawQuery": "nested=true"
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/order-mleg.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "checks": [
+          {
+            "pointer": "/value/id",
+            "value": "55555555-6666-4777-8888-999999999999"
+          },
+          {
+            "pointer": "/value/side",
+            "value": null
+          },
+          {
+            "pointer": "/value/legs/0/ratio_qty",
+            "value": "1.000000000000000001"
+          },
+          {
+            "pointer": "/value/legs/1/ratio_qty",
+            "value": "2.000000000000000002"
+          }
+        ]
+      }
+    },
+    {
+      "id": "order_by_id.explicit_false",
+      "operation": "order_by_id",
+      "input": {
+        "id": "22222222-3333-4444-8555-666666666666",
+        "nested": false
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders/22222222-3333-4444-8555-666666666666",
+        "rawQuery": "nested=false"
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/order-crypto.json"
+      },
+      "expected": {
+        "outcome": "ok",
+        "checks": [
+          {
+            "pointer": "/value/id",
+            "value": "22222222-3333-4444-8555-666666666666"
+          },
+          {
+            "pointer": "/value/qty",
+            "value": null
+          },
+          {
+            "pointer": "/value/notional",
+            "value": "25.1234567890123456789012345"
+          }
+        ]
+      }
+    },
+    {
+      "id": "order_by_id.not_found",
+      "operation": "order_by_id",
+      "input": {
+        "id": "11111111-2222-4333-8444-555555555555"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders/11111111-2222-4333-8444-555555555555",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 404,
+        "body": "fixtures/error-private.json"
+      },
+      "expected": {
+        "outcome": "absent"
+      }
+    },
+    {
+      "id": "order_by_id.invalid_shape",
+      "operation": "order_by_id",
+      "input": {
+        "id": "11111111-2222-4333-8444-555555555555"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders/11111111-2222-4333-8444-555555555555",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/empty-array.json"
+      },
+      "expected": {
+        "outcome": "error",
+        "error": "InvalidResponse"
+      }
+    },
+    {
+      "id": "order_by_id.mismatched_id",
+      "operation": "order_by_id",
+      "input": {
+        "id": "11111111-2222-4333-8444-555555555555"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/v2/orders/11111111-2222-4333-8444-555555555555",
+        "rawQuery": null
+      },
+      "response": {
+        "status": 200,
+        "body": "fixtures/order-crypto.json"
+      },
+      "expected": {
+        "outcome": "error",
+        "error": "InvalidResponse"
+      }
+    }
+  ]
+}

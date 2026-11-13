@@ -91,6 +91,7 @@
       "order_type": "limit",
       "time_in_force": "day",
       "qty": "1",
+      "ratio_qty": "1.000000000000000001",
       "filled_qty": "1",
       "filled_avg_price": "1.25",
       "limit_price": "1.2500000001",
@@ -109,7 +110,8 @@
       "time_in_force": "day",
       "qty": "1",
       "filled_qty": "1",
-      "limit_price": "0.75"
+      "limit_price": "0.75",
+      "ratio_qty": "2.000000000000000002"
     }
   ]
 },
