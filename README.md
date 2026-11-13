@@ -6,7 +6,7 @@
 
 **Atalanta** is a planned, independent Java library for [Alpaca's Trading and Market Data APIs](https://docs.alpaca.markets/), developed alongside [Kirke](https://github.com/black-belt-badger/kirke) (Haskell) and [Medea](https://github.com/black-belt-badger/medea) (Rust). The projects will aim for functional parity while retaining idiomatic language-specific designs.
 
-**Current status: two read-only API endpoints implemented.** Atalanta provides asynchronous `GET /v2/account` and `GET /v2/assets` for Alpaca **paper** accounts, with typed Java 17 records, exact decimal values, and our sealed `Result<T>`/`AlpacaError` failure model. There are no positions/orders endpoints, published Maven packages, or order-writing operations yet.
+**Current status: three read-only API endpoints implemented.** Atalanta provides asynchronous `GET /v2/account`, `GET /v2/assets` and `GET /v2/positions` for Alpaca **paper** accounts, with typed Java 17 records, exact decimal values, and our sealed `Result<T>`/`AlpacaError` failure model. There are no orders endpoints, published Maven packages, or order-writing operations yet.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 mvn --batch-mode --no-transfer-prog
 
 The build produces `target/atalanta-0.1.0-SNAPSHOT.jar`. Maven coordinates are currently `io.github.blackbeltbadger:atalanta:0.1.0-SNAPSHOT`; the public dependency contract is not finalized.
 
-Tests use **JUnit 5** and **AssertJ**, including synthetic account/assets contract fixtures and asynchronous HTTP stubs. No API credentials, external services or database are required to run the tests.
+Tests use **JUnit 5** and **AssertJ**, including synthetic account/assets/positions contract fixtures and asynchronous HTTP stubs. No API credentials, external services or database are required to run the tests.
 
 ## Account API (read-only paper trading)
 
@@ -68,6 +68,20 @@ CompletionStage<Result<List<Asset>>> filtered =
 
 `Asset` and `AssetQuery` are immutable Java records, including precise crypto quantity and price increments, exchange/attribute filtering, and forward-compatible asset classes. No JSON implementation types are exposed. See the [assets contract and field coverage](docs/ASSETS_API.md).
 
+## Open positions API (read-only paper trading)
+
+```java
+Atalanta client = Atalanta.paper(
+        System.getenv("APCA_API_KEY_ID"),
+        System.getenv("APCA_API_SECRET_KEY"));
+
+CompletionStage<Result<List<Position>>> positions = client.positions();
+```
+
+`GET /v2/positions` retrieves **all currently open positions** with no query parameters. `Position` and `PositionUsd` are Java records; quantities, P/L and exchange rates use exact `BigDecimal` values. A valid empty portfolio returns an empty immutable list. Nullable IPO prices, option positions with empty exchange codes, local-currency USD valuations, and future fields are supported without exposing Jackson. Position records redact holdings in `toString()`.
+
+See the [position coverage matrix, example fixtures and validation rules](docs/POSITIONS_API.md). This is not a historical-positions API or a position-closing operation.
+
 ## Functional error types
 
 Atalanta defines its own Java 17 algebraic data types, with no third-party FP dependency:
@@ -77,7 +91,7 @@ Result<Integer> value = Result.ok(21).map(n -> n * 2);
 Result<Integer> failure = Result.err(new AlpacaError.RateLimited("Rate limited"));
 ```
 
-`Result<T>` is a sealed interface with immutable `Ok<T>` and `Err<T>` records, `map`, `flatMap` and `fold`. `AlpacaError` is a sealed family of typed operational failures. Account and assets return `CompletionStage<Result<Account>>` and `CompletionStage<Result<List<Asset>>>`, respectively. Neither Jackson nor a JSON representation appears in these public signatures. Error descriptions are sanitized and must never contain secrets or private responses.
+`Result<T>` is a sealed interface with immutable `Ok<T>` and `Err<T>` records, `map`, `flatMap` and `fold`. `AlpacaError` is a sealed family of typed operational failures. The account, assets and positions operations return `CompletionStage<Result<Account>>`, `CompletionStage<Result<List<Asset>>>` and `CompletionStage<Result<List<Position>>>`, respectively. Neither Jackson nor a JSON representation appears in these public signatures. Error descriptions are sanitized and must never contain secrets or private responses.
 
 ## Internal HTTP transport
 

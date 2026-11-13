@@ -1,0 +1,8 @@
+{
+  "asset_id":"bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+  "symbol":"AAPL261120C00200000","exchange":"","asset_class":"us_option",
+  "qty":"-2","side":"short",
+  "asset_marginable":null,
+  "market_value":"-400.50","current_price":"200.25",
+  "unrealized_pl":"50.50"
+}

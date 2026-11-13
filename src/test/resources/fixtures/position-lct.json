@@ -1,0 +1,25 @@
+{
+  "asset_id":"dddddddd-eeee-4fff-8aaa-bbbbbbbbbbbb",
+  "symbol":"SYNTH-LCT","exchange":"NASDAQ","asset_class":"global_equity",
+  "asset_marginable":true,"qty":"0.1199","qty_available":"0.1199","side":"long",
+  "avg_entry_price":"33001.59760325",
+  "cost_basis":"3956.89155263","market_value":"3957.039656317",
+  "current_price":"33002.83283","lastday_price":"33043.76295",
+  "change_today":"-0.0012386640123866","unrealized_pl":"0.148103687",
+  "unrealized_plpc":"0.0000374293015187",
+  "unrealized_intraday_pl":"0.148103687325",
+  "unrealized_intraday_plpc":"0.0000374293016008",
+  "swap_rate":"146.179","prev_swap_rate":"146.00000000001",
+  "avg_entry_swap_rate":"146.1745",
+  "usd":{
+    "avg_entry_price":"225.7685","market_value":"27.069823",
+    "cost_basis":"27.0696431500022234","unrealized_pl":"0.0010131666450037",
+    "unrealized_plpc":"0.0000374293015187",
+    "unrealized_intraday_pl":"0.001013166647227",
+    "unrealized_intraday_plpc":"0.0000374293016008",
+    "current_price":"225.77","lastday_price":"226.05",
+    "change_today":"-0.0000084736112053",
+    "unknown_usd_field":{"precision":0.0000000000000000000000001},
+    "future_usd_null":null
+  }
+}

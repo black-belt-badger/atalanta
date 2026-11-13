@@ -1,0 +1,91 @@
+[
+{
+  "asset_id":"11111111-2222-4333-8444-555555555555",
+  "symbol":"AAPL",
+  "exchange":"NASDAQ",
+  "asset_class":"us_equity",
+  "asset_marginable":true,
+  "qty":"5.0000000000000000001",
+  "qty_available":"4.9000000000000000001",
+  "side":"long",
+  "avg_entry_price":"100.01234567890123456789",
+  "cost_basis":"500.06172839450617283945",
+  "market_value":"600.00",
+  "current_price":"120",
+  "lastday_price":"119",
+  "change_today":"0.008403361344537815126",
+  "unrealized_pl":"99.93827160549382716055",
+  "unrealized_plpc":"0.199876543210987654321",
+  "unrealized_intraday_pl":"5.000001",
+  "unrealized_intraday_plpc":"0.0084",
+  "swap_rate":null,
+  "new_provider_field":{"positions":["live",null,{"quantum":0.123456789012345678901234567890123456789}],"enabled":true},
+  "future_null":null
+},
+{
+  "asset_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  "symbol":"BTC/USD","exchange":"CRYPTO","asset_class":"crypto",
+  "asset_marginable":false,
+  "qty":"0.000997498123456789012345678901",
+  "qty_available":"0.000997498123456789012345678901",
+  "side":"long",
+  "avg_entry_price":"67291.123456789012345678",
+  "cost_basis":"67.123456789012345678",
+  "market_value":"67.100000000000000001",
+  "current_price":"67281.00",
+  "lastday_price":"69000",
+  "change_today":"-0.024913043478260869",
+  "unrealized_pl":"-0.023456789012345677",
+  "unrealized_plpc":"-0.000349478123456789",
+  "unrealized_intraday_pl":"-0.000000000000001",
+  "unrealized_intraday_plpc":"-0.0000000000000001"
+},
+{
+  "asset_id":"bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+  "symbol":"AAPL261120C00200000","exchange":"","asset_class":"us_option",
+  "qty":"-2","side":"short",
+  "asset_marginable":null,
+  "market_value":"-400.50","current_price":"200.25",
+  "unrealized_pl":"50.50"
+},
+{
+  "asset_id":"cccccccc-dddd-4eee-8fff-aaaaaaaaaaaa",
+  "symbol":"EXMP261115","exchange":"","asset_class":"ipo",
+  "qty":"100","qty_available":"100","side":"long",
+  "avg_entry_price":"20","cost_basis":"2000",
+  "market_value":null,"current_price":null,"lastday_price":null,
+  "change_today":null,"unrealized_pl":null,"unrealized_plpc":null,
+  "unrealized_intraday_pl":null,"unrealized_intraday_plpc":null
+},
+{
+  "asset_id":"dddddddd-eeee-4fff-8aaa-bbbbbbbbbbbb",
+  "symbol":"SYNTH-LCT","exchange":"NASDAQ","asset_class":"global_equity",
+  "asset_marginable":true,"qty":"0.1199","qty_available":"0.1199","side":"long",
+  "avg_entry_price":"33001.59760325",
+  "cost_basis":"3956.89155263","market_value":"3957.039656317",
+  "current_price":"33002.83283","lastday_price":"33043.76295",
+  "change_today":"-0.0012386640123866","unrealized_pl":"0.148103687",
+  "unrealized_plpc":"0.0000374293015187",
+  "unrealized_intraday_pl":"0.148103687325",
+  "unrealized_intraday_plpc":"0.0000374293016008",
+  "swap_rate":"146.179","prev_swap_rate":"146.00000000001",
+  "avg_entry_swap_rate":"146.1745",
+  "usd":{
+    "avg_entry_price":"225.7685","market_value":"27.069823",
+    "cost_basis":"27.0696431500022234","unrealized_pl":"0.0010131666450037",
+    "unrealized_plpc":"0.0000374293015187",
+    "unrealized_intraday_pl":"0.001013166647227",
+    "unrealized_intraday_plpc":"0.0000374293016008",
+    "current_price":"225.77","lastday_price":"226.05",
+    "change_today":"-0.0000084736112053",
+    "unknown_usd_field":{"precision":0.0000000000000000000000001},
+    "future_usd_null":null
+  }
+},
+{
+  "asset_id":"eeeeeeee-ffff-4aaa-8bbb-cccccccccccc",
+  "symbol":"FUTURE/SYMBOL","exchange":"FUTURE_EXCHANGE",
+  "asset_class":"future_class","side":"future_side","qty":"0",
+  "new_wire_flag":false
+}
+]
