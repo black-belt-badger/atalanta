@@ -60,7 +60,7 @@ Parameter values are encoded only once by the shared HTTP transport. A successfu
 | `client_order_id`, `asset_id` | String, UUID | Optional |
 | `symbol`, `asset_class`, `side`, `position_intent` | String | Optional on some parent/group orders; future values retained |
 | `status`, `type`, `order_type`, `order_class`, `time_in_force` | String | Status required; provider new statuses/classes remain readable |
-| `qty`, `notional`, `filled_qty`, `filled_avg_price` | BigDecimal | Exact quantities and fills; null quantity on notional orders |
+| `qty`, `ratio_qty`, `notional`, `filled_qty`, `filled_avg_price` | BigDecimal | Exact quantities and fills; `ratio_qty` on multi-leg option children; null quantity on notional orders |
 | `limit_price`, `stop_price`, `trail_price`, `trail_percent`, `hwm` | BigDecimal | Nullable, exact trailing and price fields |
 | `extended_hours` | Boolean | Optional or explicit null |
 | `created_at`, `updated_at`, `submitted_at`, `filled_at` | String | Optional high-precision timestamp text retained |
@@ -97,4 +97,4 @@ Routine authentication/permission failures, 429 rate limits, non-success HTTP st
 - [Kirke M3 order-list contract #35](https://github.com/black-belt-badger/kirke/issues/35)
 - [Medea M3 order-list contract #36](https://github.com/black-belt-badger/medea/issues/36)
 
-This is only the list endpoint. `GET /v2/orders/{order_id}` is a **separate** planned endpoint, tracked in [Atalanta #12](https://github.com/black-belt-badger/atalanta/issues/12).
+The single-order lookup `GET /v2/orders/{order_id}` is documented separately in [order-by-ID contract](ORDER_BY_ID_API.md) and reuses the same typed `Order` decoder, including `ratio_qty` on option legs.

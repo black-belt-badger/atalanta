@@ -6,7 +6,7 @@
 
 **Atalanta** is a planned, independent Java library for [Alpaca's Trading and Market Data APIs](https://docs.alpaca.markets/), developed alongside [Kirke](https://github.com/black-belt-badger/kirke) (Haskell) and [Medea](https://github.com/black-belt-badger/medea) (Rust). The projects will aim for functional parity while retaining idiomatic language-specific designs.
 
-**Current status: four read-only API endpoints implemented.** Atalanta provides asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions` and `GET /v2/orders` for Alpaca **paper** accounts, with typed Java 17 records, exact decimal values, and our sealed `Result<T>`/`AlpacaError` failure model. Order-by-ID, published Maven packages, and order-writing operations are not yet available.
+**Current status: five read-only API endpoints implemented.** Atalanta provides asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders` and `GET /v2/orders/{order_id}` for Alpaca **paper** accounts, with typed Java 17 records, exact decimal values, and our sealed `Result<T>`/`AlpacaError` failure model. Published Maven packages and order-writing operations are not yet available.
 
 ## Requirements
 
@@ -108,6 +108,21 @@ CompletionStage<Result<List<Order>>> nextPage =
 
 See [orders request/response coverage, constraints and offline fixtures](docs/ORDERS_API.md).
 
+## Get order by ID (read-only paper trading)
+
+```java
+Atalanta client = Atalanta.paper(
+        System.getenv("APCA_API_KEY_ID"),
+        System.getenv("APCA_API_SECRET_KEY"));
+
+CompletionStage<Result<Optional<Order>>> order = client.order(orderId);
+CompletionStage<Result<Optional<Order>>> nested = client.order(orderId, true);
+```
+
+Both methods return our existing typed `Order` record, including exact decimal prices and quantities and typed option legs. A valid 404 is `Ok(Optional.empty())`; authentication, rate limit, network and malformed response failures remain typed `Err` values. An omitted `nested` flag is different from sending explicit `nested=false`. The order-list decoder is reused for consistent behavior.
+
+See [order-by-ID contract and tests](docs/ORDER_BY_ID_API.md). This is a UUID lookup, not a `client_order_id` lookup, and no order mutation is supported.
+
 ## Functional error types
 
 Atalanta defines its own Java 17 algebraic data types, with no third-party FP dependency:
@@ -117,7 +132,7 @@ Result<Integer> value = Result.ok(21).map(n -> n * 2);
 Result<Integer> failure = Result.err(new AlpacaError.RateLimited("Rate limited"));
 ```
 
-`Result<T>` is a sealed interface with immutable `Ok<T>` and `Err<T>` records, `map`, `flatMap` and `fold`. `AlpacaError` is a sealed family of typed operational failures. Account, assets, positions and orders all return asynchronous `CompletionStage<Result<T>>` values using our sealed functional error type. Neither Jackson nor a JSON representation appears in these public signatures. Error descriptions are sanitized and must never contain secrets or private responses.
+`Result<T>` is a sealed interface with immutable `Ok<T>` and `Err<T>` records, `map`, `flatMap` and `fold`. `AlpacaError` is a sealed family of typed operational failures. Account, assets, positions and orders all return asynchronous `CompletionStage<Result<T>>` values using our sealed functional error type. The single-order lookup additionally uses `Optional<Order>` to represent an order not found. Neither Jackson nor a JSON representation appears in these public signatures. Error descriptions are sanitized and must never contain secrets or private responses.
 
 ## Internal HTTP transport
 

@@ -17,7 +17,7 @@ final class OrderDecoder {
     private static final Set<String> KNOWN_FIELDS = Set.of(
             "id", "client_order_id", "asset_id", "asset_class", "symbol",
             "side", "position_intent", "status", "type", "order_type",
-            "order_class", "time_in_force", "qty", "notional", "filled_qty",
+            "order_class", "time_in_force", "qty", "ratio_qty", "notional", "filled_qty",
             "filled_avg_price", "limit_price", "stop_price", "trail_price",
             "trail_percent", "hwm", "extended_hours", "created_at",
             "updated_at", "submitted_at", "filled_at", "expired_at",
@@ -39,6 +39,23 @@ final class OrderDecoder {
             return Result.ok(List.copyOf(orders));
         } catch (IllegalArgumentException failure) {
             // Do not leak response values, IDs, financial details, or parser messages.
+            return Result.err(new AlpacaError.InvalidResponse("Invalid order field or type"));
+        }
+    }
+
+    /**
+     * Decode the single-order object returned by GET /v2/orders/{order_id}.
+     * Reuse the exact same nested-leg, type and precision rules as the list
+     * decoder, so list and lookup cannot drift apart.
+     */
+    static Result<Order> decodeSingle(JsonNode root) {
+        if (root == null || !root.isObject()) {
+            return Result.err(new AlpacaError.InvalidResponse("Expected an order JSON object"));
+        }
+        try {
+            return Result.ok(decodeOne(root, 0));
+        } catch (IllegalArgumentException error) {
+            // Do not leak provider account data, order IDs or JSON snippets.
             return Result.err(new AlpacaError.InvalidResponse("Invalid order field or type"));
         }
     }
@@ -70,6 +87,7 @@ final class OrderDecoder {
                 text(root, "order_class"),
                 text(root, "time_in_force"),
                 decimal(root, "qty"),      // notional-based orders have null qty
+                decimal(root, "ratio_qty"), // optional multi-leg option ratio
                 decimal(root, "notional"), // quantity-based orders have null notional
                 decimal(root, "filled_qty"),
                 decimal(root, "filled_avg_price"),
