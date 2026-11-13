@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/fancy.webp" alt="Atalanta — bow and arrow monogram and wordmark" width="760">
+  <img src="docs/fancy-readme.webp" alt="Atalanta — bow and arrow monogram and wordmark" width="760">
 </p>
 
 # Atalanta — Java client for Alpaca's Trading and Crypto Market Data APIs (planned)
