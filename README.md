@@ -6,7 +6,7 @@
 
 **Atalanta** is a planned, independent Java library for [Alpaca's Trading and Market Data APIs](https://docs.alpaca.markets/), developed alongside [Kirke](https://github.com/black-belt-badger/kirke) (Haskell) and [Medea](https://github.com/black-belt-badger/medea) (Rust). The projects will aim for functional parity while retaining idiomatic language-specific designs.
 
-**Current status: five read-only API endpoints implemented.** Atalanta provides asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders` and `GET /v2/orders/{order_id}` for Alpaca **paper** accounts, with typed Java 17 records, exact decimal values, and our sealed `Result<T>`/`AlpacaError` failure model. Published Maven packages and order-writing operations are not yet available.
+**Current status: five read-only paper Trading API endpoints, plus historical crypto bars.** Atalanta supports asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders` and `GET /v2/orders/{order_id}` for Alpaca paper accounts, plus `GET /v1beta3/crypto/{loc}/bars` for read-only Alpaca Market Data. These return typed Java 17 records, exact decimal values, and functional `Result<T>`/`AlpacaError` failures. Published Maven packages and order-writing operations are not yet available.
 
 ## Requirements
 
@@ -32,6 +32,30 @@ The build produces `target/atalanta-0.1.0-SNAPSHOT.jar`. Maven coordinates are c
 Tests use **JUnit 5** and **AssertJ**, including synthetic account/assets/positions/orders contract fixtures and asynchronous HTTP stubs. No API credentials, external services or database are required to run the tests.
 
 The versioned [portable Trading API contract pack](contracts/alpaca-trading/v1/README.md) contains 26 synthetic request/response/expected-outcome cases and SHA-256 integrity hashes. Java JUnit tests exercise all five public endpoints against the pack. The [phase-1 triparity audit](docs/TRIPARITY_AUDIT.md) and [reproducible Haskell/Rust decoder smoke checks](tools/triparity/README.md) found three shared fixture mismatches in each CLI; full native normalized request/response parity remains open under Atalanta #26.
+
+## Historical crypto bars (read-only Market Data)
+
+Historical crypto OHLCV bars are fetched from the **separate, fixed** `data.alpaca.markets` HTTPS host. The public Java 17 API is asynchronous, without a CLI or mutable global client configuration:
+
+```java
+Atalanta client = Atalanta.paper(
+        System.getenv("APCA_API_KEY_ID"),
+        System.getenv("APCA_API_SECRET_KEY"));
+
+CryptoBarQuery query = CryptoBarQuery.of(
+        List.of("BTC/USD", "ETH/USD"), CryptoTimeframe.minutes(1))
+        .withStart("2026-10-02T00:00:00Z")
+        .withEnd("2026-10-03T00:00:00Z")
+        .withLimit(1000)
+        .withSort(CryptoBarQuery.Sort.ASC);
+
+CompletionStage<Result<CryptoBarPage>> page = client.cryptoBars(query);
+CompletionStage<CryptoBarScan> bounded = client.cryptoBarsPages(query, 3);
+```
+
+`cryptoBars` fetches **one page**, exposing its opaque `nextPageToken()`. The bounded multi-page method fetches at most 20 pages; `Stopped` indicates exhaustion or a remaining token, and `Failed` retains successful pages alongside the terminal typed error. Both handle short/empty pages with continuation tokens. The `CryptoBar` record exposes exact `BigDecimal` OHLCV, optional `BigInteger` trade count and VWAP, high-precision original timestamp text and immutable unknown-provider fields. All five documented locations and provider timeframe variants are supported.
+
+Read the [complete historical crypto-bars API, request/response contract and offline-test guide](docs/CRYPTO_BARS_API.md). No broker order is created and no account state is changed.
 
 ## Account API (read-only paper trading)
 
