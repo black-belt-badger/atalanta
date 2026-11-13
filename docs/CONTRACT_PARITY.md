@@ -28,4 +28,6 @@ Atalanta M3 fixture-set revision **`alpaca-trading-read-only/1.0.0`** lives in [
 
 The pack is a transport-neutral, implementation-neutral fixture contract **proposed** as a common source of truth, not an automatic new ADR. We selected Atalanta-hosted vendoring for M3 to avoid premature fourth-repository or CI infrastructure. After both CLI implementations finish their individual endpoint work, compare the same fixture IDs and results, negotiate any legitimate differences explicitly, and file per-repo implementation fixes.
 
+Internal API review draft: [Atalanta #25 audit and PO decision queue](INTERNAL_API_AUDIT.md).
+
 Related issues: [cross-language fixtures #7](https://github.com/black-belt-badger/atalanta/issues/7), [Atalanta consistency #25](https://github.com/black-belt-badger/atalanta/issues/25), [triparity #26](https://github.com/black-belt-badger/atalanta/issues/26), [public API refinement #5](https://github.com/black-belt-badger/atalanta/issues/5), and Metis proposed ADR-0006.
