@@ -131,6 +131,10 @@ class OrderDecoderTest {
                 .containsExactly("buy", "sell");
         assertThat(multi.legs()).extracting(Order::positionIntent)
                 .containsExactly("buy_to_open", "sell_to_open");
+        assertThat(multi.legs().get(0).ratioQty())
+                .isEqualByComparingTo(new BigDecimal("1.000000000000000001"));
+        assertThat(multi.legs().get(1).ratioQty())
+                .isEqualByComparingTo(new BigDecimal("2.000000000000000002"));
         assertThat(multi.legs().get(0).limitPrice())
                 .isEqualByComparingTo(new BigDecimal("1.2500000001"));
         assertThat(multi.legs().get(1).symbol())

@@ -34,6 +34,7 @@ public record Order(
         String orderClass,
         String timeInForce,
         BigDecimal qty,
+        BigDecimal ratioQty,
         BigDecimal notional,
         BigDecimal filledQty,
         BigDecimal filledAvgPrice,

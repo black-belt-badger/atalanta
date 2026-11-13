@@ -3,6 +3,8 @@ package bbb.atalanta;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -12,8 +14,8 @@ import java.util.concurrent.CompletionStage;
  * ordinary provider/network failures are typed {@link Result.Err} values.
  * Unexpected programming faults or cancellation may complete exceptionally.
  *
- * <p>Account, asset-list, open-position and order-list reads are supported.
- * No order placement or live-trading methods are available.
+ * <p>Account, asset-list, position, order-list and order-by-ID reads are
+ * supported. No order placement or live-trading methods are available.
  */
 public final class Atalanta {
 
@@ -78,6 +80,40 @@ public final class Atalanta {
         Objects.requireNonNull(query, "query");
         return transport.get(List.of("v2", "orders"), query.toQueryParameters())
                 .thenApply(result -> result.flatMap(OrderDecoder::decode));
+    }
+
+    /**
+     * Fetch one order by its Alpaca UUID, omitting the optional nested flag.
+     *
+     * <p>A missing order (HTTP 404) is represented by a successful empty
+     * Optional; other expected provider failures remain typed errors.
+     */
+    public CompletionStage<Result<Optional<Order>>> order(UUID id) {
+        return orderById(id, Map.of());
+    }
+
+    /**
+     * Fetch one order and explicitly request nested or non-nested leg results.
+     * This is a read-only lookup; it cannot create, replace or cancel orders.
+     */
+    public CompletionStage<Result<Optional<Order>>> order(UUID id, boolean nested) {
+        return orderById(id, Map.of("nested", Boolean.toString(nested)));
+    }
+
+    private CompletionStage<Result<Optional<Order>>> orderById(
+            UUID id, Map<String, String> query) {
+        Objects.requireNonNull(id, "id");
+        return transport.get(List.of("v2", "orders", id.toString()), query)
+                .thenApply(response -> response.fold(
+                        json -> OrderDecoder.decodeSingle(json).flatMap(order ->
+                                order.id().equals(id)
+                                        ? Result.ok(Optional.of(order))
+                                        : Result.err(new AlpacaError.InvalidResponse(
+                                                "Order response ID does not match requested ID"))),
+                        error -> error instanceof AlpacaError.HttpFailure failure
+                                && failure.statusCode() == 404
+                                ? Result.ok(Optional.empty())
+                                : Result.err(error)));
     }
 
     /** Avoid accidental diagnostic printing of credentials or account data. */
