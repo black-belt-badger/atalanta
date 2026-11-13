@@ -6,7 +6,7 @@
 
 **Atalanta** is a planned, independent Java library for [Alpaca's Trading and Market Data APIs](https://docs.alpaca.markets/), developed alongside [Kirke](https://github.com/black-belt-badger/kirke) (Haskell) and [Medea](https://github.com/black-belt-badger/medea) (Rust). The projects will aim for functional parity while retaining idiomatic language-specific designs.
 
-**Current status: five read-only paper Trading API endpoints, historical crypto bars and trades, and explicit single-order paper cancellation.** Atalanta supports asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders`, `GET /v2/orders/{order_id}`, and historical `GET /v1beta3/crypto/{loc}/bars` and `GET /v1beta3/crypto/{loc}/trades` via the separate Alpaca Market Data host. Only a deliberate `cancelPaperOrder(UUID)` call sends a paper-only `DELETE /v2/orders/{order_id}`; read operations never mutate an order. Typed Java 17 records, exact decimals and sealed `Result<T>`/`AlpacaError` semantics are used throughout. There is no live trading, automatic cancellation, cancel-all operation, or published Maven release.
+**Current status: five read-only paper Trading API endpoints, historical crypto bars, trades and quotes, and explicit single-order paper cancellation.** Atalanta supports asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders`, `GET /v2/orders/{order_id}`, and historical `GET /v1beta3/crypto/{loc}/bars` and `GET /v1beta3/crypto/{loc}/trades` and `GET /v1beta3/crypto/{loc}/quotes` via the separate Alpaca Market Data host. Only a deliberate `cancelPaperOrder(UUID)` call sends a paper-only `DELETE /v2/orders/{order_id}`; read operations never mutate an order. Typed Java 17 records, exact decimals and sealed `Result<T>`/`AlpacaError` semantics are used throughout. There is no live trading, automatic cancellation, cancel-all operation, or published Maven release.
 
 ## Requirements
 
@@ -76,6 +76,27 @@ CompletionStage<CryptoTradeScan> bounded = client.cryptoTradesPages(query, 3);
 `cryptoTrades` fetches exactly **one provider page**, exposing its opaque continuation. `cryptoTradesPages` fetches at most 20 pages and either reports `Stopped` with a remaining token or `Failed` with successfully retrieved pages and a typed error. Even a short/empty page can have a continuation. The Alpaca limit applies **across all symbols**, not separately to each.
 
 See [historical crypto-trades contract, query/response models and offline tests](docs/CRYPTO_TRADES_API.md). This is not a trading order endpoint and never modifies paper account state.
+
+## Historical crypto quotes (read-only Market Data)
+
+Best-bid/best-ask observations use the same fixed Market Data host as Bars and have **no timeframe parameter**:
+
+```java
+Atalanta client = Atalanta.paper(
+        System.getenv("APCA_API_KEY_ID"),
+        System.getenv("APCA_API_SECRET_KEY"));
+
+CryptoQuoteQuery query = CryptoQuoteQuery.of(List.of("BTC/USD", "ETH/USD"))
+        .withStart("2026-10-02T00:00:00.123456789Z")
+        .withEnd("2026-10-03T00:00:00Z")
+        .withLimit(1000)
+        .withSort(CryptoQuoteQuery.Sort.ASC);
+
+CompletionStage<Result<CryptoQuotePage>> page = client.cryptoQuotes(query);
+CompletionStage<CryptoQuoteScan> bounded = client.cryptoQuotesPages(query, 3);
+```
+
+`CryptoQuote` stores the five fields `ap`, `as`, `bp`, `bs` and `t` as **exact BigDecimal prices/sizes and original high-resolution timestamp text**, with immutable extensions. Bid and ask sizes use the **base asset**, not an exchange lot multiplier. Provider defaults are preserved when optional query filters are omitted. Pagination is bounded, follows continuation tokens even after short pages, detects loops and preserves earlier valid pages on failure. No order mutation occurs. See the [historical crypto quotes contract and offline tests](docs/CRYPTO_QUOTES_API.md).
 
 ## Account API (read-only paper trading)
 

@@ -5,6 +5,7 @@ All notable user-visible changes to the Atalanta Java library will be recorded h
 ## Unreleased
 
 ### Added
+- Historical crypto best-bid/best-ask quotes with `Atalanta.cryptoQuotes(CryptoQuoteQuery)` and bounded `cryptoQuotesPages(query, maxPages)`, exact decimal price/size, original nanosecond timestamp text, immutable unknown fields, validated RFC3339 filters and opaque continuation tokens; no timeframe, hidden retries or live trades.
 - Java 17 Maven JAR skeleton, JUnit 5/AssertJ smoke test, CI, BSD-3-Clause license and README.
 - Repository governance, contributor guidance, issue/PR templates and security reporting policy.
 - Sealed Java 17 `Result<T>` and `AlpacaError` records, useful FP combinators, and offline tests.
