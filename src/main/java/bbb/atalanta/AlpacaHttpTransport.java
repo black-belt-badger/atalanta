@@ -31,7 +31,8 @@ import java.util.stream.Collectors;
  *
  * <p>Only this class knows the HTTP and Jackson representations. Future public
  * endpoint methods will convert successful JSON trees to immutable Java records.
- * Read-only GETs are separate from an explicit single-order paper DELETE.
+ * Read-only GETs are separate from explicit, authorized one-order paper
+ * POST submission and UUID-specific DELETE cancellation.
  * Never follow redirects, silently retry, or expose credentials or provider
  * response bodies in errors.
  */
@@ -103,9 +104,89 @@ final class AlpacaHttpTransport {
     }
 
     /**
+     * Submit exactly one deliberately authorized crypto PAPER order.
+     * The explicit ConfirmedPaperOrder type is required here too, not only
+     * in Atalanta's public facade; there is no unconfirmed POST builder.
+     */
+    CompletionStage<Result<JsonNode>> postPaperOrder(ConfirmedPaperOrder confirmed) {
+        Objects.requireNonNull(confirmed, "confirmed");
+        String body = CryptoOrderEncoder.json(confirmed.request());
+        HttpRequest request = HttpRequest.newBuilder(uriFor(List.of("v2", "orders"), Map.of()))
+                .timeout(requestTimeout)
+                .header("APCA-API-KEY-ID", keyId)
+                .header("APCA-API-SECRET-KEY", secretKey)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+                .build();
+
+        // No application-level retry, redirect, or fallback to the live host.
+        return send.apply(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
+                .handle(this::submissionResponse);
+    }
+
+    private Result<JsonNode> submissionResponse(HttpResponse<String> response, Throwable failure) {
+        if (failure != null) {
+            Throwable cause = unwrap(failure);
+            if (cause instanceof CancellationException cancellation) {
+                throw cancellation;
+            }
+            if (cause instanceof HttpTimeoutException || cause instanceof IOException) {
+                return Result.err(new AlpacaError.SubmissionOutcomeUnknown(
+                        null, "Paper submission outcome unknown; inspect client_order_id before retrying"));
+            }
+            throw new CompletionException(cause);
+        }
+
+        int status = response.statusCode();
+        if (status == 401) {
+            return Result.err(new AlpacaError.Authentication("Alpaca authentication failed"));
+        }
+        if (status == 403) {
+            return Result.err(new AlpacaError.Forbidden("Paper order rejected or buying power insufficient (HTTP 403)"));
+        }
+        if (status == 422) {
+            return Result.err(new AlpacaError.OrderRejected("Alpaca rejected paper order parameters (HTTP 422)"));
+        }
+        if (status == 429) {
+            return Result.err(new AlpacaError.RateLimited("Paper order submission rate limited (HTTP 429)"));
+        }
+        if (status >= 500 && status <= 599) {
+            return Result.err(new AlpacaError.SubmissionOutcomeUnknown(
+                    status, "Paper submission outcome unknown after provider HTTP 5xx"));
+        }
+
+        // The provider documents 200. 201 is also an accepted creation status;
+        // a different 2xx does not prove we received a verified order.
+        if (status != 200 && status != 201) {
+            if (status >= 200 && status < 300) {
+                return Result.err(new AlpacaError.SubmissionOutcomeUnknown(
+                        status, "Unexpected paper submission response; inspect client_order_id"));
+            }
+            return Result.err(new AlpacaError.HttpFailure(status, "Alpaca returned HTTP " + status));
+        }
+        if (response.body() == null || response.body().isBlank()) {
+            return Result.err(new AlpacaError.SubmissionOutcomeUnknown(
+                    status, "Empty paper submission response; inspect client_order_id"));
+        }
+        try {
+            JsonNode payload = mapper.readTree(response.body());
+            if (payload == null || !payload.isObject()) {
+                return Result.err(new AlpacaError.SubmissionOutcomeUnknown(
+                        status, "Invalid paper submission response; inspect client_order_id"));
+            }
+            return Result.ok(payload);
+        } catch (JsonProcessingException invalid) {
+            // Jackson parser exceptions may contain private provider body text.
+            return Result.err(new AlpacaError.SubmissionOutcomeUnknown(
+                    status, "Invalid paper submission response; inspect client_order_id"));
+        }
+    }
+
+    /**
      * One explicit, bodyless DELETE of a validated server-issued order UUID.
-     * Only this method mutates state. The host, timeout and redirect policy
-     * remain the same as read-only paper calls; no automatic retry occurs.
+     * This is a separate explicit mutation method. The host, timeout and
+     * redirect policy match read-only paper calls; no automatic retry occurs.
      */
     CompletionStage<Result<PaperCancellationAccepted>> deletePaperOrder(UUID orderId) {
         Objects.requireNonNull(orderId, "orderId");

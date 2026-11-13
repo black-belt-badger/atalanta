@@ -20,7 +20,7 @@ import java.util.concurrent.CompletionStage;
  * Unexpected programming faults or cancellation may complete exceptionally.
  *
  * <p>Account, asset-list, position, order-list and order-by-ID reads are
- * supported. Single-order paper cancellation requires an explicit call;
+ * supported. Paper order submission and cancellation require explicit calls;
  * there are no live-trading methods or implicit mutations.
  */
 public final class Atalanta {
@@ -91,7 +91,7 @@ public final class Atalanta {
 
     /**
      * Read GET /v2/orders with explicit immutable filters and exclusive
-     * timestamp/order-ID pagination. No order placement is supported.
+     * timestamp/order-ID pagination. This method never submits an order.
      */
     public CompletionStage<Result<List<Order>>> orders(OrderQuery query) {
         Objects.requireNonNull(query, "query");
@@ -317,6 +317,35 @@ public final class Atalanta {
             nextSeen.add(token);
             return cryptoQuotesPages(query.withPageToken(token), maxPages, pages, nextSeen);
         });
+    }
+
+    /**
+     * Submit one previously validated and explicitly authorized crypto PAPER
+     * order. Creating CryptoOrderRequest or calling authorize() alone does
+     * not send HTTP; this method sends exactly one POST without retries.
+     *
+     * <p>A returned Order is Alpaca's acknowledged order status, NOT a
+     * guarantee of any filled quantity. If the result is unknown, inspect
+     * existing paper orders using the caller's clientOrderId before retrying.
+     */
+    public CompletionStage<Result<Order>> submitPaperOrder(ConfirmedPaperOrder confirmed) {
+        Objects.requireNonNull(confirmed, "confirmed");
+        return transport.postPaperOrder(confirmed)
+                .thenApply(result -> result.flatMap(payload -> {
+                    Result<Order> decoded = OrderDecoder.decodeSingle(payload);
+                    if (decoded instanceof Result.Err<Order>) {
+                        // A server may have created the order even though its
+                        // success JSON was not what this decoder expected.
+                        return Result.err(new AlpacaError.SubmissionOutcomeUnknown(
+                                null, "Unverifiable paper submission response; inspect client_order_id"));
+                    }
+                    Order order = ((Result.Ok<Order>) decoded).value();
+                    if (!confirmed.request().clientOrderId().equals(order.clientOrderId())) {
+                        return Result.err(new AlpacaError.SubmissionOutcomeUnknown(
+                                null, "Paper submission ID mismatch; inspect client_order_id"));
+                    }
+                    return Result.ok(order);
+                }));
     }
 
     /**

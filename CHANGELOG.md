@@ -5,6 +5,7 @@ All notable user-visible changes to the Atalanta Java library will be recorded h
 ## Unreleased
 
 ### Added
+- Deliberate paper-only crypto order submission: `CryptoOrderRequest` and `ConfirmedPaperOrder` records, market/limit buy/sell, exact quantity or market notional, USD precision and stable client ID, one non-retried POST via `Atalanta.submitPaperOrder`, verified typed `Order` or typed uncertain outcome after 5xx/timeout/malformed success, with fully synthetic HTTP tests.
 - Historical crypto best-bid/best-ask quotes with `Atalanta.cryptoQuotes(CryptoQuoteQuery)` and bounded `cryptoQuotesPages(query, maxPages)`, exact decimal price/size, original nanosecond timestamp text, immutable unknown fields, validated RFC3339 filters and opaque continuation tokens; no timeframe, hidden retries or live trades.
 - Java 17 Maven JAR skeleton, JUnit 5/AssertJ smoke test, CI, BSD-3-Clause license and README.
 - Repository governance, contributor guidance, issue/PR templates and security reporting policy.
@@ -20,4 +21,4 @@ All notable user-visible changes to the Atalanta Java library will be recorded h
 - Portable, versioned, self-contained read-only Alpaca Trading API contract pack: 26 neutral HTTP/response/expectation cases for five endpoints, canonical synthetic fixtures, SHA-256 hashes and a JUnit runner. Moved existing fixtures rather than maintaining duplicate copies; rebuilt mixed fixtures without rounding precise numeric JSON.
 
 ### Limitations
-- Five paper-only GET endpoints are implemented. Published Maven artifact, client-order-ID lookup, and order-writing operations remain outstanding.
+- Five paper Trading API GET endpoints, three historical crypto Market Data GET endpoints, paper order submission and single-order cancellation are implemented. Publishing a Maven release, GET-by-client-order-ID, advanced order classes and live trading remain out of scope.
