@@ -1,6 +1,6 @@
 # Atalanta release plan (maintainers)
 
-Atalanta is an **unpublished Java 17 library under development**. Paper account, asset-list and open-positions endpoints exist, but other endpoints and the first release remain outstanding.
+Atalanta is an **unpublished Java 17 library under development**. Paper account, asset-list, open-positions and order-list endpoints exist, but order-by-ID and the first release remain outstanding.
 
 ## Before the first release
 
