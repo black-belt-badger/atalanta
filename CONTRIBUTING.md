@@ -36,3 +36,7 @@ Never commit Alpaca credentials, tokens, account identifiers, or unredacted acco
 ## Release status
 
 Atalanta has a **Java 17 Maven foundation and five read-only paper Trading API endpoints, including order-by-ID lookup**; it is not yet a published package and other Alpaca endpoints remain unimplemented. Publication and versioning will be refined under [#13](https://github.com/black-belt-badger/atalanta/issues/13). Do not claim a Maven Central release or API support before it exists.
+
+### Shared contract fixtures
+
+For changes to Alpaca request/response behavior, add or update synthetic cases in [`contracts/alpaca-trading/v1/`](contracts/alpaca-trading/v1/README.md) and keep the portable manifest and Java regression tests consistent. Preserve decimal precision; update `SHA256SUMS` after changing fixture or manifest bytes. Do not use real account credentials or identifying account data. Kirke/Medea adoption and any idiomatic differences require separate review under [triparity #26](https://github.com/black-belt-badger/atalanta/issues/26).

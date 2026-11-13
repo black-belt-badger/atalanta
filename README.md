@@ -31,6 +31,10 @@ The build produces `target/atalanta-0.1.0-SNAPSHOT.jar`. Maven coordinates are c
 
 Tests use **JUnit 5** and **AssertJ**, including synthetic account/assets/positions/orders contract fixtures and asynchronous HTTP stubs. No API credentials, external services or database are required to run the tests.
 
+The fixtures are now in a standalone, versioned [portable Trading API contract pack](contracts/alpaca-trading/v1/README.md), with 26 request/response/expected-outcome cases and SHA-256 integrity hashes. The JUnit runner exercises all five public Java endpoints against that pack, while existing field-specific tests use the same canonical fixtures. See the [cross-language contract coverage matrix](docs/CONTRACT_PARITY.md). **Kirke/Medea compatibility has not yet been verified**; this is preparation for the later triparity audit.
+
+The fixtures are now in a standalone, versioned [portable Trading API contract pack](contracts/alpaca-trading/v1/README.md), with 26 request/response/expected-outcome cases and SHA-256 integrity hashes. The JUnit runner exercises all five public Java endpoints against that pack, while existing field-specific tests use the same canonical fixtures. See the [cross-language contract coverage matrix](docs/CONTRACT_PARITY.md). **Kirke/Medea compatibility has not yet been verified**; this is preparation for the later triparity audit.
+
 ## Account API (read-only paper trading)
 
 ```java
