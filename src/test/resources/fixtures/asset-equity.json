@@ -1,0 +1,34 @@
+{
+  "id": "11111111-2222-4333-8444-555555555555",
+  "class": "us_equity",
+  "exchange": "NASDAQ",
+  "symbol": "AAPL",
+  "name": "Example Equity",
+  "status": "active",
+  "tradable": true,
+  "marginable": true,
+  "shortable": true,
+  "fractionable": true,
+  "easy_to_borrow": true,
+  "borrow_status": "easy_to_borrow",
+  "cusip": null,
+  "margin_requirement_long": "100",
+  "margin_requirement_short": "30.00000000000000000001",
+  "maintenance_margin_requirement": "29.12500000000000000000001",
+  "attributes": [
+    "has_options",
+    "overnight_tradable",
+    "future_attribute"
+  ],
+  "future": {
+    "decimals": 0.12345678901234567890123456789012345,
+    "nested": [
+      null,
+      true,
+      {
+        "x": "hello"
+      }
+    ]
+  },
+  "future_null": null
+}

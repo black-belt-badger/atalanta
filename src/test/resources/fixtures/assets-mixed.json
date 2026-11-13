@@ -1,0 +1,78 @@
+[
+{
+  "id": "11111111-2222-4333-8444-555555555555",
+  "class": "us_equity",
+  "exchange": "NASDAQ",
+  "symbol": "AAPL",
+  "name": "Example Equity",
+  "status": "active",
+  "tradable": true,
+  "marginable": true,
+  "shortable": true,
+  "fractionable": true,
+  "easy_to_borrow": true,
+  "borrow_status": "easy_to_borrow",
+  "cusip": null,
+  "margin_requirement_long": "100",
+  "margin_requirement_short": "30.00000000000000000001",
+  "maintenance_margin_requirement": "29.12500000000000000000001",
+  "attributes": [
+    "has_options",
+    "overnight_tradable",
+    "future_attribute"
+  ],
+  "future": {
+    "decimals": 0.12345678901234567890123456789012345,
+    "nested": [
+      null,
+      true,
+      {
+        "x": "hello"
+      }
+    ]
+  },
+  "future_null": null
+},
+{
+  "id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  "class": "crypto",
+  "exchange": "CRYPTO",
+  "symbol": "BTC/USD",
+  "name": "Bitcoin / USD",
+  "status": "active",
+  "tradable": true,
+  "marginable": false,
+  "shortable": false,
+  "fractionable": true,
+  "min_order_size": "0.000000010000000001",
+  "min_trade_increment": "0.00000000000001",
+  "price_increment": "0.01",
+  "attributes": []
+},
+{
+  "id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+  "class": "us_index",
+  "exchange": "INDEX",
+  "symbol": "SPX",
+  "name": "Example Index",
+  "status": "FUTURE_STATUS",
+  "tradable": false,
+  "marginable": false,
+  "shortable": false,
+  "fractionable": false,
+  "attributes": null,
+  "borrow_status": null
+},
+{
+  "id": "cccccccc-dddd-4eee-8fff-aaaaaaaaaaaa",
+  "class": "crypto_perp",
+  "exchange": "ASCX",
+  "symbol": "ETH/USD",
+  "name": "Example Crypto Perpetual",
+  "status": "active",
+  "tradable": true,
+  "marginable": false,
+  "shortable": false,
+  "fractionable": true
+}
+]

@@ -1,0 +1,14 @@
+{
+  "id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+  "class": "us_index",
+  "exchange": "INDEX",
+  "symbol": "SPX",
+  "name": "Example Index",
+  "status": "FUTURE_STATUS",
+  "tradable": false,
+  "marginable": false,
+  "shortable": false,
+  "fractionable": false,
+  "attributes": null,
+  "borrow_status": null
+}

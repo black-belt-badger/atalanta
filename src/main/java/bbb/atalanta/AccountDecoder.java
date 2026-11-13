@@ -3,11 +3,8 @@ package bbb.atalanta;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -44,7 +41,7 @@ final class AccountDecoder {
             root.properties().forEach(entry -> {
                 present.add(entry.getKey());
                 if (!KNOWN_FIELDS.contains(entry.getKey())) {
-                    additional.put(entry.getKey(), javaValue(entry.getValue()));
+                    additional.put(entry.getKey(), ProviderJson.javaValue(entry.getValue()));
                 }
             });
 
@@ -171,30 +168,4 @@ final class AccountDecoder {
         return node.intValue();
     }
 
-    private static Object javaValue(JsonNode node) {
-        if (node.isNull()) {
-            return null;
-        }
-        if (node.isTextual()) {
-            return node.textValue();
-        }
-        if (node.isBoolean()) {
-            return node.booleanValue();
-        }
-        if (node.isNumber()) {
-            return node.isIntegralNumber() ? node.bigIntegerValue() : node.decimalValue();
-        }
-        if (node.isArray()) {
-            var result = new ArrayList<Object>();
-            node.forEach(item -> result.add(javaValue(item)));
-            return Collections.unmodifiableList(result);
-        }
-        if (node.isObject()) {
-            var result = new LinkedHashMap<String, Object>();
-            node.properties().forEach(entry ->
-                    result.put(entry.getKey(), javaValue(entry.getValue())));
-            return Collections.unmodifiableMap(result);
-        }
-        throw new IllegalArgumentException("Unsupported provider JSON value");
-    }
 }
