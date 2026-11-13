@@ -5,7 +5,7 @@
 
 This folder is a **self-contained, language-neutral set of synthetic wire contracts** for the five initial Alpaca Trading API reads. It contains only static JSON, a manifest, integrity hashes, and explanatory Markdown. It has **no Java source, compilation dependencies, executable hooks, real account records, or credentials**. Kirke (Haskell) and Medea (Rust) can copy or vendor the entire folder and implement their own manifest runner.
 
-This is an **Atalanta-maintained candidate contract pack**, not a claim that Kirke/Medea already consume or pass it. Actual triparity findings and negotiated language-specific deviations belong in [Atalanta #26](https://github.com/black-belt-badger/atalanta/issues/26) after endpoint work.
+This is an **Atalanta-maintained candidate contract pack**, not a claim that Kirke/Medea production test suites already consume or pass it. The first [triparity audit](../../../docs/TRIPARITY_AUDIT.md) uses isolated native decoder smoke adapters, finds three mismatching cases per CLI, and leaves complete normalized tests and language-specific decisions open under [Atalanta #26](https://github.com/black-belt-badger/atalanta/issues/26).
 
 ## Why not a fourth repository?
 
