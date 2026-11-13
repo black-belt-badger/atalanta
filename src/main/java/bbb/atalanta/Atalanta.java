@@ -1,14 +1,18 @@
 package bbb.atalanta;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Read-only Java 17 client for Alpaca's paper Trading API.
+ * Java 17 client for Alpaca's read-only paper Trading API and historical crypto Market Data.
  *
  * <p>Remote operations are asynchronous and return functional Results:
  * ordinary provider/network failures are typed {@link Result.Err} values.
@@ -20,15 +24,26 @@ import java.util.concurrent.CompletionStage;
 public final class Atalanta {
 
     private final AlpacaHttpTransport transport;
+    private final CryptoMarketDataTransport marketData;
 
-    /** Create a client locked to Alpaca's paper trading endpoint. */
+    /**
+     * Create a paper-only Trading API client with read-only crypto Market Data
+     * access, using the same credentials but strictly separate allowed hosts.
+     */
     public static Atalanta paper(String apiKeyId, String secretKey) {
-        return new Atalanta(AlpacaHttpTransport.paper(apiKeyId, secretKey));
+        return new Atalanta(AlpacaHttpTransport.paper(apiKeyId, secretKey),
+                CryptoMarketDataTransport.alpaca(apiKeyId, secretKey));
     }
 
-    /** Package-private constructor for isolated contract tests. */
+    /** Existing package-private seam for the five Trading API contract tests. */
     Atalanta(AlpacaHttpTransport transport) {
+        this(transport, null);
+    }
+
+    /** Offline fixture seam: inject both independent hosts without real HTTP. */
+    Atalanta(AlpacaHttpTransport transport, CryptoMarketDataTransport marketData) {
         this.transport = Objects.requireNonNull(transport, "transport");
+        this.marketData = marketData;
     }
 
     /** Fetch the complete, read-only paper-account snapshot (GET /v2/account). */
@@ -114,6 +129,68 @@ public final class Atalanta {
                                 && failure.statusCode() == 404
                                 ? Result.ok(Optional.empty())
                                 : Result.err(error)));
+    }
+
+    /**
+     * Fetch exactly ONE historical crypto bars page from Alpaca Market Data.
+     * No implicit pagination: the returned page contains the opaque next token.
+     */
+    public CompletionStage<Result<CryptoBarPage>> cryptoBars(CryptoBarQuery query) {
+        Objects.requireNonNull(query, "query");
+        if (marketData == null) {
+            throw new IllegalStateException("Historical market-data transport unavailable");
+        }
+        return marketData.get(query.location(), "bars", query.toQueryParameters())
+                .thenApply(response -> response.flatMap(CryptoBarDecoder::decode));
+    }
+
+    /**
+     * Retrieve 1–20 pages, without unbounded recursion or hidden retries.
+     * A failed later page yields Failed(successfulPages, error), not an empty
+     * error-only outcome. Stopped with a nonempty token means more pages exist.
+     */
+    public CompletionStage<CryptoBarScan> cryptoBarsPages(CryptoBarQuery query, int maxPages) {
+        Objects.requireNonNull(query, "query");
+        if (maxPages < 1 || maxPages > 20) {
+            throw new IllegalArgumentException("maxPages must be between 1 and 20");
+        }
+        var seen = new HashSet<String>();
+        if (query.pageToken() != null) {
+            seen.add(query.pageToken());
+        }
+        return cryptoBarsPages(query, maxPages, List.of(), seen);
+    }
+
+    private CompletionStage<CryptoBarScan> cryptoBarsPages(
+            CryptoBarQuery query, int maxPages,
+            List<CryptoBarPage> received, Set<String> seen) {
+        return cryptoBars(query).thenCompose(result -> {
+            if (result instanceof Result.Err<CryptoBarPage> failure) {
+                return CompletableFuture.completedFuture(
+                        new CryptoBarScan.Failed(received, failure.error()));
+            }
+            CryptoBarPage page = ((Result.Ok<CryptoBarPage>) result).value();
+            var pages = new ArrayList<>(received);
+            pages.add(page);
+            String token = page.nextPageToken();
+
+            if (token == null) {
+                return CompletableFuture.completedFuture(
+                        new CryptoBarScan.Stopped(pages, Optional.empty()));
+            }
+            if (seen.contains(token)) {
+                return CompletableFuture.completedFuture(new CryptoBarScan.Failed(
+                        pages, new AlpacaError.InvalidResponse(
+                                "Alpaca returned a repeated crypto bars page token")));
+            }
+            if (pages.size() >= maxPages) {
+                return CompletableFuture.completedFuture(
+                        new CryptoBarScan.Stopped(pages, Optional.of(token)));
+            }
+            var nextSeen = new HashSet<>(seen);
+            nextSeen.add(token);
+            return cryptoBarsPages(query.withPageToken(token), maxPages, pages, nextSeen);
+        });
     }
 
     /** Avoid accidental diagnostic printing of credentials or account data. */
