@@ -6,7 +6,7 @@
 
 **Atalanta** is a planned, independent Java library for [Alpaca's Trading and Market Data APIs](https://docs.alpaca.markets/), developed alongside [Kirke](https://github.com/black-belt-badger/kirke) (Haskell) and [Medea](https://github.com/black-belt-badger/medea) (Rust). The projects will aim for functional parity while retaining idiomatic language-specific designs.
 
-**Current status: Maven library skeleton only.** The Java 17 build, tests and CI are configured; there are no HTTP clients, Alpaca endpoints, published packages or trading operations yet. We'll design the public Java API after learning from Kirke and Medea.
+**Current status: Java 17 Maven library foundation.** The build, CI, sealed `Result<T>` and `AlpacaError` types are implemented; there are no HTTP clients, Alpaca endpoints, published packages or trading operations yet. The endpoint-facing Java API is being refined alongside Kirke and Medea.
 
 ## Requirements
 
@@ -30,6 +30,17 @@ JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 mvn --batch-mode --no-transfer-prog
 The build produces `target/atalanta-0.1.0-SNAPSHOT.jar`. Maven coordinates are currently `io.github.blackbeltbadger:atalanta:0.1.0-SNAPSHOT`; the public dependency contract is not finalized.
 
 Tests use **JUnit 5** and **AssertJ**. The initial smoke test verifies that the Java 17 language level and test infrastructure work; actual provider behavior will be tested when implemented. No API credentials, external services or database are required.
+
+## Functional error types
+
+Atalanta defines its own Java 17 algebraic data types, with no third-party FP dependency:
+
+```java
+Result<Integer> value = Result.ok(21).map(n -> n * 2);
+Result<Integer> failure = Result.err(new AlpacaError.RateLimited("Rate limited"));
+```
+
+`Result<T>` is a sealed interface with immutable `Ok<T>` and `Err<T>` records, `map`, `flatMap` and `fold`. `AlpacaError` is a sealed family of typed operational failures. Future network operations will return `CompletionStage<Result<T>>`; **no HTTP endpoint has been implemented yet**. Neither Jackson nor a JSON representation appears in these public signatures. Error descriptions provided by future transports must be sanitized and must never contain secrets or private responses.
 
 ## Artwork
 
