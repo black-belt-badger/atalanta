@@ -1,6 +1,6 @@
 # Order-by-ID endpoint — Java 17
 
-**Endpoint:** authenticated `GET /v2/orders/{order_id}` on Alpaca's **paper Trading API**. This fetches one order by its provider-issued UUID. It is read-only and does not retrieve by `client_order_id`, place orders, or cancel them.
+**Endpoint:** authenticated `GET /v2/orders/{order_id}` on Alpaca's **paper Trading API**. This fetches one order by its provider-issued UUID. It is read-only and does not retrieve by `client_order_id`, place orders or cancel them; [paper cancellation](PAPER_CANCEL_API.md) is an independent explicit call.
 
 ## Public API
 

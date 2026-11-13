@@ -16,7 +16,10 @@ public sealed interface AlpacaError permits
         AlpacaError.HttpFailure,
         AlpacaError.TransportFailure,
         AlpacaError.Timeout,
-        AlpacaError.InvalidResponse {
+        AlpacaError.InvalidResponse,
+        AlpacaError.OrderNotFound,
+        AlpacaError.OrderNotCancelable,
+        AlpacaError.CancellationOutcomeUnknown {
 
     /** Invalid or missing authentication credentials (typically HTTP 401). */
     record Authentication(String message) implements AlpacaError {
@@ -58,6 +61,33 @@ public sealed interface AlpacaError permits
 
     /** Request or response timed out. */
     record Timeout() implements AlpacaError {}
+
+    /** Single paper order was not found (DELETE returned HTTP 404). */
+    record OrderNotFound(String message) implements AlpacaError {
+        public OrderNotFound {
+            Objects.requireNonNull(message, "message");
+        }
+    }
+
+    /** Paper order is no longer cancelable (DELETE returned HTTP 422). */
+    record OrderNotCancelable(String message) implements AlpacaError {
+        public OrderNotCancelable {
+            Objects.requireNonNull(message, "message");
+        }
+    }
+
+    /**
+     * DELETE outcome is uncertain: connection/timeout or provider HTTP 5xx.
+     * The request may have been accepted; query the order before any retry.
+     */
+    record CancellationOutcomeUnknown(Integer httpStatus, String message) implements AlpacaError {
+        public CancellationOutcomeUnknown {
+            if (httpStatus != null && (httpStatus < 500 || httpStatus > 599)) {
+                throw new IllegalArgumentException("httpStatus must be a 5xx status");
+            }
+            Objects.requireNonNull(message, "message");
+        }
+    }
 
     /** Provider response could not be interpreted as the expected contract. */
     record InvalidResponse(String message) implements AlpacaError {

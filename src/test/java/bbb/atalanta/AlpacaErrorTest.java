@@ -21,13 +21,14 @@ class AlpacaErrorTest {
     }
 
     @Test
-    void sealedFamilyIncludesExactlyTheInitiallySupportedCases() {
+    void sealedFamilyIncludesPaperCancellationOutcomes() {
         assertThat(AlpacaError.class.isSealed()).isTrue();
         assertThat(Arrays.stream(AlpacaError.class.getPermittedSubclasses())
                 .map(Class::getSimpleName))
                 .containsExactlyInAnyOrder(
                         "Authentication", "Forbidden", "RateLimited", "HttpFailure",
-                        "TransportFailure", "Timeout", "InvalidResponse");
+                        "TransportFailure", "Timeout", "InvalidResponse",
+                        "OrderNotFound", "OrderNotCancelable", "CancellationOutcomeUnknown");
         assertThat(AlpacaError.Timeout.class.isRecord()).isTrue();
     }
 
@@ -49,5 +50,13 @@ class AlpacaErrorTest {
         assertThatNullPointerException().isThrownBy(() -> new AlpacaError.HttpFailure(503, null));
         assertThatNullPointerException().isThrownBy(() -> new AlpacaError.TransportFailure(null));
         assertThatNullPointerException().isThrownBy(() -> new AlpacaError.InvalidResponse(null));
+        assertThatNullPointerException().isThrownBy(() -> new AlpacaError.OrderNotFound(null));
+        assertThatNullPointerException().isThrownBy(() -> new AlpacaError.OrderNotCancelable(null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new AlpacaError.CancellationOutcomeUnknown(null, null));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new AlpacaError.CancellationOutcomeUnknown(422, "invalid status"));
+        assertThat(new AlpacaError.CancellationOutcomeUnknown(503, "outcome unknown").httpStatus())
+                .isEqualTo(503);
     }
 }

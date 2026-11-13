@@ -6,7 +6,7 @@
 
 **Atalanta** is a planned, independent Java library for [Alpaca's Trading and Market Data APIs](https://docs.alpaca.markets/), developed alongside [Kirke](https://github.com/black-belt-badger/kirke) (Haskell) and [Medea](https://github.com/black-belt-badger/medea) (Rust). The projects will aim for functional parity while retaining idiomatic language-specific designs.
 
-**Current status: five read-only paper Trading API endpoints, plus historical crypto bars.** Atalanta supports asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders` and `GET /v2/orders/{order_id}` for Alpaca paper accounts, plus `GET /v1beta3/crypto/{loc}/bars` for read-only Alpaca Market Data. These return typed Java 17 records, exact decimal values, and functional `Result<T>`/`AlpacaError` failures. Published Maven packages and order-writing operations are not yet available.
+**Current status: five read-only paper Trading API endpoints, historical crypto bars, and explicit single-order paper cancellation.** Atalanta supports asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders`, `GET /v2/orders/{order_id}`, and historical `GET /v1beta3/crypto/{loc}/bars` via the separate Alpaca Market Data host. Only a deliberate `cancelPaperOrder(UUID)` call sends a paper-only `DELETE /v2/orders/{order_id}`; read operations never mutate an order. Typed Java 17 records, exact decimals and sealed `Result<T>`/`AlpacaError` semantics are used throughout. There is no live trading, automatic cancellation, cancel-all operation, or published Maven release.
 
 ## Requirements
 
@@ -130,7 +130,7 @@ CompletionStage<Result<List<Order>>> nextPage =
         client.orders(OrderQuery.defaults().withAfterOrderId(previousOrderId));
 ```
 
-`Order` and `OrderQuery` are immutable Java records; prices, quantities and partial fills are exact `BigDecimal` values. The list API supports all documented filters, including date limits, symbols, asset classes and mutually exclusive order-ID cursors. Nested option legs are typed order records. No order placement, cancellation or live trading methods are implemented.
+`Order` and `OrderQuery` are immutable Java records; prices, quantities and partial fills are exact `BigDecimal` values. The list API supports all documented filters, including date limits, symbols, asset classes and mutually exclusive order-ID cursors. Nested option legs are typed order records. These reads never cancel an order; single-order paper cancellation is separate and explicit, and live trading is not supported.
 
 See [orders request/response coverage, constraints and offline fixtures](docs/ORDERS_API.md).
 
@@ -147,7 +147,27 @@ CompletionStage<Result<Optional<Order>>> nested = client.order(orderId, true);
 
 Both methods return our existing typed `Order` record, including exact decimal prices and quantities and typed option legs. A valid 404 is `Ok(Optional.empty())`; authentication, rate limit, network and malformed response failures remain typed `Err` values. An omitted `nested` flag is different from sending explicit `nested=false`. The order-list decoder is reused for consistent behavior.
 
-See [order-by-ID contract and tests](docs/ORDER_BY_ID_API.md). This is a UUID lookup, not a `client_order_id` lookup, and no order mutation is supported.
+See [order-by-ID contract and tests](docs/ORDER_BY_ID_API.md). This is a UUID lookup, not a `client_order_id` lookup; it never mutates an order.
+
+## Cancel one paper order (explicit mutation)
+
+**This call attempts a real cancellation of one PAPER order; it is not a dry run or a final-status guarantee.** Use the provider-issued UUID, not the client order ID. No read-only method performs implicit cancellation.
+
+```java
+Atalanta paper = Atalanta.paper(
+        System.getenv("APCA_API_KEY_ID"),
+        System.getenv("APCA_API_SECRET_KEY"));
+UUID id = UUID.fromString("9275f66a-0a1b-4a22-8c55-167416c7cf14");
+
+// Explicit single-order DELETE to the fixed Alpaca PAPER host.
+CompletionStage<Result<PaperCancellationAccepted>> accepted =
+        paper.cancelPaperOrder(id);
+
+// HTTP 204 only means accepted. Check final state separately.
+CompletionStage<Result<Optional<Order>>> status = paper.order(id);
+```
+
+The UUID is synthetic. Use a real server ID **only when you intend to cancel it**. A `PaperCancellationAccepted` value does not mean `Order.status() == "canceled"`; an order may fill before cancellation completes. HTTP 404 (not found) and 422 (not cancelable) have distinct typed errors; timeouts, network problems and provider 5xx produce an **uncertain outcome**, not an excuse to retry automatically. Tests never send real cancellation requests. See the [cancellation contract and recovery guidance](docs/PAPER_CANCEL_API.md).
 
 ## Functional error types
 
@@ -162,7 +182,7 @@ Result<Integer> failure = Result.err(new AlpacaError.RateLimited("Rate limited")
 
 ## Internal HTTP transport
 
-An internal, **asynchronous**, GET-only JDK 17 HTTP transport now handles Alpaca paper Trading API authentication and typed operational failures. Redirects and automatic retries are disabled. Jackson decodes and validates JSON **internally**, preserving exact decimals; no Jackson types appear in the public API.
+An internal, **asynchronous** JDK 17 HTTP transport handles paper Trading API authentication and typed operational failures. Five reads use GET; a separate method issues one explicit paper DELETE, without redirect following or application-level retries. Jackson decodes JSON **internally** for the read operations; no Jackson types appear in the public API.
 
 The transport remains package-private; applications call the public `Atalanta` client. See [transport design and offline tests](docs/HTTP_TRANSPORT.md) for its boundaries.
 

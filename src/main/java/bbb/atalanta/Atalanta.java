@@ -12,14 +12,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Java 17 client for Alpaca's read-only paper Trading API and historical crypto Market Data.
+ * Java 17 client for Alpaca paper Trading API (including explicit single-order
+ * paper cancellation) and read-only historical crypto Market Data.
  *
  * <p>Remote operations are asynchronous and return functional Results:
  * ordinary provider/network failures are typed {@link Result.Err} values.
  * Unexpected programming faults or cancellation may complete exceptionally.
  *
  * <p>Account, asset-list, position, order-list and order-by-ID reads are
- * supported. No order placement or live-trading methods are available.
+ * supported. Single-order paper cancellation requires an explicit call;
+ * there are no live-trading methods or implicit mutations.
  */
 public final class Atalanta {
 
@@ -191,6 +193,21 @@ public final class Atalanta {
             nextSeen.add(token);
             return cryptoBarsPages(query.withPageToken(token), maxPages, pages, nextSeen);
         });
+    }
+
+    /**
+     * Explicitly attempt cancellation of one paper order by its server UUID.
+     *
+     * <p>This is a real DELETE; no read operation calls it automatically.
+     * A successful value means Alpaca accepted the request (HTTP 204), NOT
+     * that the order is in terminal "canceled" state. Verify independently
+     * with {@link #order(UUID)}. If the result is uncertain, inspect status
+     * before considering a repeat request.
+     */
+    public CompletionStage<Result<PaperCancellationAccepted>> cancelPaperOrder(UUID orderId) {
+        Objects.requireNonNull(orderId, "orderId");
+        return transport.deletePaperOrder(orderId);
+
     }
 
     /** Avoid accidental diagnostic printing of credentials or account data. */
