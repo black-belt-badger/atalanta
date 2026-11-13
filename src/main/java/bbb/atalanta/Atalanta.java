@@ -258,6 +258,68 @@ public final class Atalanta {
     }
 
     /**
+     * Fetch exactly ONE historical crypto quotes page from Alpaca Market Data.
+     * No implicit pagination: the returned page contains the opaque next token.
+     */
+    public CompletionStage<Result<CryptoQuotePage>> cryptoQuotes(CryptoQuoteQuery query) {
+        Objects.requireNonNull(query, "query");
+        if (marketData == null) {
+            throw new IllegalStateException("Historical market-data transport unavailable");
+        }
+        return marketData.get(query.location(), "quotes", query.toQueryParameters())
+                .thenApply(response -> response.flatMap(CryptoQuoteDecoder::decode));
+    }
+
+    /**
+     * Retrieve 1–20 pages, without unbounded recursion or hidden retries.
+     * A failed later page yields Failed(successfulPages, error), not an empty
+     * error-only outcome. Stopped with a nonempty token means more pages exist.
+     */
+    public CompletionStage<CryptoQuoteScan> cryptoQuotesPages(CryptoQuoteQuery query, int maxPages) {
+        Objects.requireNonNull(query, "query");
+        if (maxPages < 1 || maxPages > 20) {
+            throw new IllegalArgumentException("maxPages must be between 1 and 20");
+        }
+        var seen = new HashSet<String>();
+        if (query.pageToken() != null) {
+            seen.add(query.pageToken());
+        }
+        return cryptoQuotesPages(query, maxPages, List.of(), seen);
+    }
+
+    private CompletionStage<CryptoQuoteScan> cryptoQuotesPages(
+            CryptoQuoteQuery query, int maxPages,
+            List<CryptoQuotePage> received, Set<String> seen) {
+        return cryptoQuotes(query).thenCompose(result -> {
+            if (result instanceof Result.Err<CryptoQuotePage> failure) {
+                return CompletableFuture.completedFuture(
+                        new CryptoQuoteScan.Failed(received, failure.error()));
+            }
+            CryptoQuotePage page = ((Result.Ok<CryptoQuotePage>) result).value();
+            var pages = new ArrayList<>(received);
+            pages.add(page);
+            String token = page.nextPageToken();
+
+            if (token == null) {
+                return CompletableFuture.completedFuture(
+                        new CryptoQuoteScan.Stopped(pages, Optional.empty()));
+            }
+            if (seen.contains(token)) {
+                return CompletableFuture.completedFuture(new CryptoQuoteScan.Failed(
+                        pages, new AlpacaError.InvalidResponse(
+                                "Alpaca returned a repeated crypto quotes page token")));
+            }
+            if (pages.size() >= maxPages) {
+                return CompletableFuture.completedFuture(
+                        new CryptoQuoteScan.Stopped(pages, Optional.of(token)));
+            }
+            var nextSeen = new HashSet<>(seen);
+            nextSeen.add(token);
+            return cryptoQuotesPages(query.withPageToken(token), maxPages, pages, nextSeen);
+        });
+    }
+
+    /**
      * Explicitly attempt cancellation of one paper order by its server UUID.
      *
      * <p>This is a real DELETE; no read operation calls it automatically.
