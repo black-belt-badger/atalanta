@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible issue with the Java 17 library or its build.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never include Alpaca API keys, account numbers, credentials, or private account data.
+        Security vulnerabilities belong in private vulnerability reports, not public issues.
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened?
+      description: Describe the behavior and sanitized error output.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproducer
+      description: Provide a Java 17 snippet or Maven command and the expected inputs, with private data removed.
+      placeholder: |
+        1. Build with JDK 17 using mvn verify
+        2. Run a minimal Java example
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Version and environment
+      description: Atalanta commit/version, JDK, Maven and operating system.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Link to relevant tickets and include sanitized logs only.
