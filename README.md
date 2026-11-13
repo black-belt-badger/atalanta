@@ -6,7 +6,7 @@
 
 **Atalanta** is a planned, independent Java library for [Alpaca's Trading and Market Data APIs](https://docs.alpaca.markets/), developed alongside [Kirke](https://github.com/black-belt-badger/kirke) (Haskell) and [Medea](https://github.com/black-belt-badger/medea) (Rust). The projects will aim for functional parity while retaining idiomatic language-specific designs.
 
-**Current status: five read-only paper Trading API endpoints, historical crypto bars, trades and quotes, and explicit single-order paper cancellation.** Atalanta supports asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders`, `GET /v2/orders/{order_id}`, and historical `GET /v1beta3/crypto/{loc}/bars` and `GET /v1beta3/crypto/{loc}/trades` and `GET /v1beta3/crypto/{loc}/quotes` via the separate Alpaca Market Data host. Only a deliberate `cancelPaperOrder(UUID)` call sends a paper-only `DELETE /v2/orders/{order_id}`; read operations never mutate an order. Typed Java 17 records, exact decimals and sealed `Result<T>`/`AlpacaError` semantics are used throughout. There is no live trading, automatic cancellation, cancel-all operation, or published Maven release.
+**Current status: five read-only Trading API endpoints, historical crypto bars/trades/quotes, and explicit single-order paper submission and cancellation.** Atalanta supports asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders`, `GET /v2/orders/{order_id}`, and historical `GET /v1beta3/crypto/{loc}/bars` and `GET /v1beta3/crypto/{loc}/trades` and `GET /v1beta3/crypto/{loc}/quotes` via the separate Alpaca Market Data host. Only `submitPaperOrder(ConfirmedPaperOrder)` sends a paper-only `POST /v2/orders`; only `cancelPaperOrder(UUID)` sends a paper-only `DELETE /v2/orders/{order_id}`. Read operations never mutate an order. Typed Java 17 records, exact decimals and sealed `Result<T>`/`AlpacaError` semantics are used throughout. There is no live trading, automatic cancellation, cancel-all operation, or published Maven release.
 
 ## Requirements
 
@@ -190,6 +190,26 @@ Both methods return our existing typed `Order` record, including exact decimal p
 
 See [order-by-ID contract and tests](docs/ORDER_BY_ID_API.md). This is a UUID lookup, not a `client_order_id` lookup; it never mutates an order.
 
+## Submit a crypto paper order (explicit mutation)
+
+**This is a real PAPER order submission, not a preview or a guarantee of a fill.** The validated request and authorization values are pure; only calling `submitPaperOrder` sends HTTP:
+
+```java
+Atalanta paper = Atalanta.paper(
+        System.getenv("APCA_API_KEY_ID"),
+        System.getenv("APCA_API_SECRET_KEY"));
+
+CryptoOrderRequest prepared = CryptoOrderRequest.marketQuantity(
+        "BTC/USD", CryptoOrderRequest.Side.BUY,
+        CryptoOrderRequest.TimeInForce.GTC,
+        new BigDecimal("0.000000001"), "stable-paper-order-001");
+
+ConfirmedPaperOrder confirmed = prepared.authorize(); // pure, no network
+CompletionStage<Result<Order>> submitted = paper.submitPaperOrder(confirmed); // REAL POST
+```
+
+The API also provides `marketNotional` and `limitQuantity` factories, supporting exact positive `BigDecimal` values, required and mutually exclusive qty/notional, USD-notional precision, only `gtc`/`ioc` and a caller-controlled stable client order ID. A returned `Order` carries Alpaca's current status and is **not necessarily filled**. A timeout, broken connection, provider 5xx or unverifiable 2xx response is an `AlpacaError.SubmissionOutcomeUnknown`; inspect existing paper orders by `client_order_id` before considering any retry. The client never silently retries, targets a live host or auto-submits through reads. Tests never issue real POSTs. See the [paper order submission API and recovery contract](docs/PAPER_SUBMIT_API.md).
+
 ## Cancel one paper order (explicit mutation)
 
 **This call attempts a real cancellation of one PAPER order; it is not a dry run or a final-status guarantee.** Use the provider-issued UUID, not the client order ID. No read-only method performs implicit cancellation.
@@ -223,7 +243,7 @@ Result<Integer> failure = Result.err(new AlpacaError.RateLimited("Rate limited")
 
 ## Internal HTTP transport
 
-An internal, **asynchronous** JDK 17 HTTP transport handles paper Trading API authentication and typed operational failures. Five reads use GET; a separate method issues one explicit paper DELETE, without redirect following or application-level retries. Jackson decodes JSON **internally** for the read operations; no Jackson types appear in the public API.
+An internal, **asynchronous** JDK 17 HTTP transport handles paper Trading API authentication and typed operational failures. Five reads use GET; separate methods issue one explicitly authorized paper POST or UUID-specific DELETE, without redirect following or application-level retries. Jackson encodes/decodes JSON **internally**; no Jackson types appear in the public API.
 
 The transport remains package-private; applications call the public `Atalanta` client. See [transport design and offline tests](docs/HTTP_TRANSPORT.md) for its boundaries.
 

@@ -28,7 +28,8 @@ class AlpacaErrorTest {
                 .containsExactlyInAnyOrder(
                         "Authentication", "Forbidden", "RateLimited", "HttpFailure",
                         "TransportFailure", "Timeout", "InvalidResponse",
-                        "OrderNotFound", "OrderNotCancelable", "CancellationOutcomeUnknown");
+                        "OrderNotFound", "OrderNotCancelable", "CancellationOutcomeUnknown",
+                        "OrderRejected", "SubmissionOutcomeUnknown");
         assertThat(AlpacaError.Timeout.class.isRecord()).isTrue();
     }
 
@@ -57,6 +58,15 @@ class AlpacaErrorTest {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new AlpacaError.CancellationOutcomeUnknown(422, "invalid status"));
         assertThat(new AlpacaError.CancellationOutcomeUnknown(503, "outcome unknown").httpStatus())
+                .isEqualTo(503);
+        assertThatNullPointerException().isThrownBy(() -> new AlpacaError.OrderRejected(null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new AlpacaError.SubmissionOutcomeUnknown(null, null));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new AlpacaError.SubmissionOutcomeUnknown(422, "invalid status"));
+        assertThat(new AlpacaError.SubmissionOutcomeUnknown(200, "unknown").httpStatus())
+                .isEqualTo(200);
+        assertThat(new AlpacaError.SubmissionOutcomeUnknown(503, "unknown").httpStatus())
                 .isEqualTo(503);
     }
 }

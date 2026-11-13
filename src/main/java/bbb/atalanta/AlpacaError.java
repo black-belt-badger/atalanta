@@ -19,7 +19,9 @@ public sealed interface AlpacaError permits
         AlpacaError.InvalidResponse,
         AlpacaError.OrderNotFound,
         AlpacaError.OrderNotCancelable,
-        AlpacaError.CancellationOutcomeUnknown {
+        AlpacaError.CancellationOutcomeUnknown,
+        AlpacaError.OrderRejected,
+        AlpacaError.SubmissionOutcomeUnknown {
 
     /** Invalid or missing authentication credentials (typically HTTP 401). */
     record Authentication(String message) implements AlpacaError {
@@ -84,6 +86,28 @@ public sealed interface AlpacaError permits
         public CancellationOutcomeUnknown {
             if (httpStatus != null && (httpStatus < 500 || httpStatus > 599)) {
                 throw new IllegalArgumentException("httpStatus must be a 5xx status");
+            }
+            Objects.requireNonNull(message, "message");
+        }
+    }
+
+    /** Alpaca rejected the paper order parameters or asset rules (HTTP 422). */
+    record OrderRejected(String message) implements AlpacaError {
+        public OrderRejected {
+            Objects.requireNonNull(message, "message");
+        }
+    }
+
+    /**
+     * The outcome of a paper order POST is unknown. A lost connection, 5xx,
+     * or malformed/identity-mismatched 2xx response does not prove rejection.
+     * Investigate the supplied client_order_id; do not blindly retry.
+     */
+    record SubmissionOutcomeUnknown(Integer httpStatus, String message) implements AlpacaError {
+        public SubmissionOutcomeUnknown {
+            if (httpStatus != null && !(httpStatus >= 200 && httpStatus <= 299
+                    || httpStatus >= 500 && httpStatus <= 599)) {
+                throw new IllegalArgumentException("httpStatus must be 2xx, 5xx or null");
             }
             Objects.requireNonNull(message, "message");
         }
