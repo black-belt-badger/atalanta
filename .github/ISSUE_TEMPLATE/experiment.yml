@@ -1,0 +1,34 @@
+name: Experiment proposal
+description: Evaluate a technical hypothesis without committing to a feature.
+title: "[Experiment] "
+labels:
+  - experiment
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Experiments should be falsifiable. Use synthetic or sanitized data only.
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis
+    validations:
+      required: true
+  - type: textarea
+    id: method
+    attributes:
+      label: Proposed method and baseline
+      description: What would we test on Java 17, using which reproducible data?
+    validations:
+      required: true
+  - type: textarea
+    id: success
+    attributes:
+      label: Success and failure criteria
+    validations:
+      required: true
+  - type: textarea
+    id: deliverable
+    attributes:
+      label: Deliverable
+      description: For example, benchmark, code, design note or test report.
