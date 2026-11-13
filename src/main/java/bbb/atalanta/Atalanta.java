@@ -12,8 +12,8 @@ import java.util.concurrent.CompletionStage;
  * ordinary provider/network failures are typed {@link Result.Err} values.
  * Unexpected programming faults or cancellation may complete exceptionally.
  *
- * <p>Account, asset-list, and open-position reads are supported. No order
- * placement or live-trading methods are available.
+ * <p>Account, asset-list, open-position and order-list reads are supported.
+ * No order placement or live-trading methods are available.
  */
 public final class Atalanta {
 
@@ -60,6 +60,24 @@ public final class Atalanta {
     public CompletionStage<Result<List<Position>>> positions() {
         return transport.get(List.of("v2", "positions"), Map.of())
                 .thenApply(result -> result.flatMap(PositionDecoder::decode));
+    }
+
+    /**
+     * List orders using Alpaca's documented defaults: open orders, 50 results,
+     * newest first, no additional filters, no nested-leg roll-up.
+     */
+    public CompletionStage<Result<List<Order>>> orders() {
+        return orders(OrderQuery.defaults());
+    }
+
+    /**
+     * Read GET /v2/orders with explicit immutable filters and exclusive
+     * timestamp/order-ID pagination. No order placement is supported.
+     */
+    public CompletionStage<Result<List<Order>>> orders(OrderQuery query) {
+        Objects.requireNonNull(query, "query");
+        return transport.get(List.of("v2", "orders"), query.toQueryParameters())
+                .thenApply(result -> result.flatMap(OrderDecoder::decode));
     }
 
     /** Avoid accidental diagnostic printing of credentials or account data. */

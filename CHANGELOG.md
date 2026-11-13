@@ -13,6 +13,7 @@ All notable user-visible changes to the Atalanta Java library will be recorded h
 - Second read-only endpoint: `Atalanta.assets(AssetQuery)`, honoring Alpaca's equity defaults and providing explicit crypto/status/exchange/attribute filters, typed asset records, exact decimals, legacy/current field support and synthetic fixtures.
 - Shared internal provider JSON conversion for preserving unknown account/asset fields without exposing Jackson.
 - Third read-only endpoint: `Atalanta.positions()`, returning asynchronous typed open positions with precise fractional holdings and profit/loss, nested local-currency USD valuations, IPO/option nullability, forward-compatible extension fields and offline contract fixtures.
+- Fourth read-only endpoint: `Atalanta.orders(OrderQuery)`, with documented list parameters, exclusive order-ID pagination, strict validation, typed order and nested-leg records, exact partial/notional amounts, and offline contract tests.
 
 ### Limitations
-- Only the paper account, assets and open-positions GET endpoints are implemented. No order endpoints, published Maven artifact, or order-writing operations yet.
+- The paper account, assets, open-positions and order-list GET endpoints are implemented. Order-by-ID, published Maven artifact, and order-writing operations remain outstanding.
