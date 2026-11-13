@@ -106,9 +106,11 @@ record Adapter<Q, P>(
 
 The scanner uses immutable per-step progress (`completed`, `observed`, visited token set) and uses no explicit page accumulator. It is endpoint-neutral, has no retry policy and has no new dependency on Herkules. The three tiny public adapters map existing query/page types to this engine. There is no mandatory Vert.x, broker, database or mutable service context.
 
-## What needs a design decision before replacing anything
+## Resolved acknowledgement design and remaining API decisions
 
 **Acknowledgement decision resolved:** the draft now uses `Function<P, CompletionStage<Void>>`. The caller should return a stage promptly; do not do blocking storage work on the HTTP completion thread before returning it. A synchronous sink can adapt as `page -> { synchronousStore(page); return CompletableFuture.completedFuture(null); }`, provided it is acceptable to block that thread. The next request waits for a *successfully completed* acknowledgement. A failed, canceled or null acknowledgement stops the scan exceptionally. No partially retrieved data is silently called durable.
+
+**Page-cap compatibility:** this spike deliberately retains the existing historical scan cap of **20 pages**. Metis's historical acquisition worker supports up to 1,000 pages. Before using this directly for large backfills, decide whether to allow a larger explicit cap (while still bounding work) and test that thousands of already-completed acknowledgements do not retain pages or create excessive completion chains. No change to the cap is approved by this RFC.
 
 **Convenience aggregation:** the existing `crypto*Pages` methods retain a small in-memory batch, which is useful to interactive users/tests. We can keep these as documented convenience functions implemented on top of the generic scanner, or deprecate them later after a source-compatibility review. **This draft does neither**; it adds an alternative.
 
