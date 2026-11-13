@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Java 17 client for Alpaca paper Trading API (including explicit single-order
@@ -323,14 +323,18 @@ public final class Atalanta {
     /**
      * Experimental result-based, non-accumulating bars scan.
      *
-     * <p>Each decoded page is delivered exactly once to onPage before another
-     * page is requested. The caller owns durable checkpoints and job policy.
-     * The callback should return only once its page is safely handled.
-     * Exceptions from onPage complete the stage exceptionally rather than
-     * becoming a provider error. No automatic retries or page retention.
+     * <p>Each decoded page is delivered to onPage before another is fetched.
+     * The returned acknowledgement stage must complete successfully before
+     * traversal advances or reports success. The caller owns durable data
+     * writes, checkpoints, idempotency and job retry/reconciliation policy.
+     *
+     * <p>Callback exceptions and failed, canceled or null acknowledgement
+     * stages are caller-side failures, never provider AlpacaError values.
+     * No automatic retries or accumulated page list.
      */
     public CompletionStage<Result<ScanSummary>> scanBars(
-            CryptoBarQuery query, int maxPages, Consumer<? super CryptoBarPage> onPage) {
+            CryptoBarQuery query, int maxPages,
+            Function<? super CryptoBarPage, ? extends CompletionStage<Void>> onPage) {
         Objects.requireNonNull(query, "query");
         return PageScanner.scan(query, query.pageToken(), maxPages,
                 new PageScanner.Adapter<>(
@@ -340,7 +344,8 @@ public final class Atalanta {
 
     /** Experimental historical trades scan with the same Result contract. */
     public CompletionStage<Result<ScanSummary>> scanTrades(
-            CryptoTradeQuery query, int maxPages, Consumer<? super CryptoTradePage> onPage) {
+            CryptoTradeQuery query, int maxPages,
+            Function<? super CryptoTradePage, ? extends CompletionStage<Void>> onPage) {
         Objects.requireNonNull(query, "query");
         return PageScanner.scan(query, query.pageToken(), maxPages,
                 new PageScanner.Adapter<>(
@@ -350,7 +355,8 @@ public final class Atalanta {
 
     /** Experimental historical quotes scan with the same Result contract. */
     public CompletionStage<Result<ScanSummary>> scanQuotes(
-            CryptoQuoteQuery query, int maxPages, Consumer<? super CryptoQuotePage> onPage) {
+            CryptoQuoteQuery query, int maxPages,
+            Function<? super CryptoQuotePage, ? extends CompletionStage<Void>> onPage) {
         Objects.requireNonNull(query, "query");
         return PageScanner.scan(query, query.pageToken(), maxPages,
                 new PageScanner.Adapter<>(

@@ -39,6 +39,13 @@ class PageScannerTest {
         }
     }
 
+    private static <P> java.util.function.Function<P, CompletionStage<Void>> acknowledgeTo(List<P> stored) {
+        return page -> {
+            stored.add(page);
+            return CompletableFuture.completedFuture(null);
+        };
+    }
+
     @Test
     void deliversPagesSequentiallyWithoutAccumulatingThemInResult() {
         var requested = new ArrayList<String>();
@@ -47,7 +54,7 @@ class PageScannerTest {
                 "start", Result.ok(new FakePage(2, "NEXT")),
                 "NEXT", Result.ok(new FakePage(0, "LAST")),
                 "LAST", Result.ok(new FakePage(3, null))), requested);
-        var result = PageScanner.scan("start", null, 20, provider.adapter(), accepted::add)
+        var result = PageScanner.scan("start", null, 20, provider.adapter(), acknowledgeTo(accepted))
                 .toCompletableFuture().join();
 
         assertThat(result).isEqualTo(Result.ok(
@@ -70,7 +77,7 @@ class PageScannerTest {
                 "start", Result.ok(new FakePage(2, "NEXT")),
                 "NEXT", Result.err(error)), requested);
 
-        var result = PageScanner.scan("start", null, 20, provider.adapter(), accepted::add)
+        var result = PageScanner.scan("start", null, 20, provider.adapter(), acknowledgeTo(accepted))
                 .toCompletableFuture().join();
 
         assertThat(result).isEqualTo(Result.err(error));
@@ -87,7 +94,7 @@ class PageScannerTest {
         var provider = new FakeProvider(Map.of(
                 "start", Result.ok(new FakePage(4, "NEXT"))), requested);
 
-        var result = PageScanner.scan("start", null, 1, provider.adapter(), accepted::add)
+        var result = PageScanner.scan("start", null, 1, provider.adapter(), acknowledgeTo(accepted))
                 .toCompletableFuture().join();
 
         assertThat(result).isEqualTo(Result.ok(
@@ -103,7 +110,7 @@ class PageScannerTest {
         var provider = new FakeProvider(Map.of(
                 "start", Result.ok(new FakePage(8, "EXISTING"))), requested);
 
-        var result = PageScanner.scan("start", "EXISTING", 5, provider.adapter(), accepted::add)
+        var result = PageScanner.scan("start", "EXISTING", 5, provider.adapter(), acknowledgeTo(accepted))
                 .toCompletableFuture().join();
 
         assertThat(result).isInstanceOf(Result.Err.class);
@@ -121,7 +128,7 @@ class PageScannerTest {
                 "start", Result.ok(new FakePage(5, "LOOP")),
                 "LOOP", Result.ok(new FakePage(2, "LOOP"))), requested);
 
-        var result = PageScanner.scan("start", null, 20, provider.adapter(), accepted::add)
+        var result = PageScanner.scan("start", null, 20, provider.adapter(), acknowledgeTo(accepted))
                 .toCompletableFuture().join();
 
         assertThat(result).isInstanceOf(Result.Err.class);
@@ -161,7 +168,7 @@ class PageScannerTest {
                 (ignored, token) -> token,
                 page -> Optional.ofNullable(page.next()), FakePage::observations);
 
-        var stage = PageScanner.scan("start", null, 3, adapter, accepted::add)
+        var stage = PageScanner.scan("start", null, 3, adapter, acknowledgeTo(accepted))
                 .toCompletableFuture();
         assertThat(stage).isNotDone();
         assertThat(nextFetched).hasValue(1);
@@ -180,7 +187,7 @@ class PageScannerTest {
                 token -> { requested.incrementAndGet(); return pending; },
                 (ignored, token) -> token,
                 page -> Optional.ofNullable(page.next()), FakePage::observations);
-        var stage = PageScanner.scan("start", null, 3, adapter, ignored -> {})
+        var stage = PageScanner.scan("start", null, 3, adapter, ignored -> CompletableFuture.completedFuture(null))
                 .toCompletableFuture();
 
         pending.cancel(false);
@@ -195,12 +202,12 @@ class PageScannerTest {
         var provider = new FakeProvider(Map.of("start", Result.ok(new FakePage(1, null))), requested);
         for (int n : new int[]{0, -1, 21, Integer.MAX_VALUE}) {
             assertThatIllegalArgumentException().isThrownBy(
-                    () -> PageScanner.scan("start", null, n, provider.adapter(), ignored -> {}));
+                    () -> PageScanner.scan("start", null, n, provider.adapter(), ignored -> CompletableFuture.completedFuture(null)));
         }
         assertThatNullPointerException().isThrownBy(
                 () -> PageScanner.scan("start", null, 1, provider.adapter(), null));
         assertThatNullPointerException().isThrownBy(
-                () -> PageScanner.scan(null, null, 1, provider.adapter(), ignored -> {}));
+                () -> PageScanner.scan(null, null, 1, provider.adapter(), ignored -> CompletableFuture.completedFuture(null)));
         assertThat(requested).isEmpty();
     }
 
@@ -215,5 +222,175 @@ class PageScannerTest {
                 () -> new ScanSummary(1, -1, Optional.empty()));
         assertThatNullPointerException().isThrownBy(
                 () -> new ScanSummary(1, 0, null));
+    }
+
+    @Test
+    void waitsForEachAcknowledgementBeforeFetchingNextPageOrReportingSuccess() {
+        var requests = new ArrayList<String>();
+        var received = new ArrayList<FakePage>();
+        var firstAck = new CompletableFuture<Void>();
+        var secondAck = new CompletableFuture<Void>();
+        var provider = new FakeProvider(Map.of(
+                "start", Result.ok(new FakePage(2, "NEXT")),
+                "NEXT", Result.ok(new FakePage(3, null))), requests);
+
+        var scan = PageScanner.scan("start", null, 5, provider.adapter(), page -> {
+            received.add(page);
+            return received.size() == 1 ? firstAck : secondAck;
+        }).toCompletableFuture();
+
+        assertThat(received).containsExactly(new FakePage(2, "NEXT"));
+        assertThat(requests).containsExactly("start");
+        assertThat(scan).isNotDone();
+
+        firstAck.complete(null);
+        assertThat(requests).containsExactly("start", "NEXT");
+        assertThat(received).hasSize(2);
+        assertThat(scan).isNotDone();
+
+        secondAck.complete(null);
+        assertThat(scan.join()).isEqualTo(Result.ok(new ScanSummary(2, 5, Optional.empty())));
+        assertThat(requests).containsExactly("start", "NEXT");
+    }
+
+    @Test
+    void pendingAckForFinalPageDoesNotPrematurelyRecordCompletedCoverage() {
+        var requests = new ArrayList<String>();
+        var received = new ArrayList<FakePage>();
+        var coverageCommitted = new AtomicInteger();
+        var pendingWriteAndCheckpoint = new CompletableFuture<Void>();
+        var provider = new FakeProvider(Map.of(
+                "start", Result.ok(new FakePage(4, null))), requests);
+
+        var scan = PageScanner.scan("start", null, 5, provider.adapter(), page -> {
+            received.add(page);
+            return pendingWriteAndCheckpoint;
+        }).toCompletableFuture();
+
+        // This callback simulates a job-layer decision; it is NOT scanner logic.
+        scan.thenAccept(outcome -> outcome.fold(
+                summary -> {
+                    if (summary.exhausted()) coverageCommitted.incrementAndGet();
+                    return null;
+                },
+                error -> null));
+
+        assertThat(received).hasSize(1);
+        assertThat(requests).containsExactly("start");
+        assertThat(scan).isNotDone();
+        assertThat(coverageCommitted).hasValue(0);
+
+        pendingWriteAndCheckpoint.complete(null);
+        assertThat(scan.join()).isEqualTo(Result.ok(new ScanSummary(1, 4, Optional.empty())));
+        assertThat(coverageCommitted).hasValue(1);
+    }
+
+    @Test
+    void failedStorageAckNeverFetchesNextPageAndNeverReportsCoverage() {
+        var requests = new ArrayList<String>();
+        var coverageCommitted = new AtomicInteger();
+        var pendingWrite = new CompletableFuture<Void>();
+        var provider = new FakeProvider(Map.of(
+                "start", Result.ok(new FakePage(4, "NEXT")),
+                "NEXT", Result.ok(new FakePage(7, null))), requests);
+
+        var scan = PageScanner.scan("start", null, 5, provider.adapter(),
+                page -> pendingWrite).toCompletableFuture();
+        scan.thenAccept(result -> result.fold(
+                summary -> { coverageCommitted.incrementAndGet(); return null; },
+                error -> null));
+
+        assertThat(scan).isNotDone();
+        assertThat(requests).containsExactly("start");
+        pendingWrite.completeExceptionally(new java.io.IOException("DB_COMMIT_FAILED"));
+
+        assertThatThrownBy(scan::join)
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(java.io.IOException.class);
+        assertThat(requests).containsExactly("start");
+        assertThat(coverageCommitted).hasValue(0);
+    }
+
+    @Test
+    void canceledStorageAckNeverStartsNextRequestOrReturnsAnErrorDataValue() {
+        var requests = new ArrayList<String>();
+        var pendingWrite = new CompletableFuture<Void>();
+        var provider = new FakeProvider(Map.of(
+                "start", Result.ok(new FakePage(3, "NEXT")),
+                "NEXT", Result.ok(new FakePage(1, null))), requests);
+
+        var scan = PageScanner.scan("start", null, 5, provider.adapter(),
+                page -> pendingWrite).toCompletableFuture();
+        pendingWrite.cancel(false);
+
+        assertThatThrownBy(scan::join)
+                .isInstanceOfAny(CancellationException.class, CompletionException.class);
+        assertThat(requests).containsExactly("start");
+    }
+
+    @Test
+    void nullAcknowledgementIsProgrammingErrorNotAlpacaResult() {
+        var requests = new ArrayList<String>();
+        var provider = new FakeProvider(Map.of(
+                "start", Result.ok(new FakePage(1, "NEXT"))), requests);
+
+        var scan = PageScanner.scan("start", null, 5, provider.adapter(), page -> null)
+                .toCompletableFuture();
+        assertThatThrownBy(scan::join)
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(NullPointerException.class);
+        assertThat(requests).containsExactly("start");
+    }
+
+    @Test
+    void fullyAcknowledgedPageCanStayDurableAfterLaterProviderErrorWithoutClaimingCoverage() {
+        var requested = new ArrayList<String>();
+        var persistedCheckpoints = new ArrayList<String>();
+        var ack = new CompletableFuture<Void>();
+        var providerError = new AlpacaError.RateLimited("HTTP 429");
+        var provider = new FakeProvider(Map.of(
+                "start", Result.ok(new FakePage(8, "NEXT")),
+                "NEXT", Result.err(providerError)), requested);
+        var completeCoverage = new AtomicInteger();
+
+        var scan = PageScanner.scan("start", null, 5, provider.adapter(), page -> {
+            persistedCheckpoints.add(page.next());
+            return ack;
+        }).toCompletableFuture();
+        scan.thenAccept(result -> result.fold(
+                summary -> { if (summary.exhausted()) completeCoverage.incrementAndGet(); return null; },
+                error -> null));
+
+        assertThat(requested).containsExactly("start");
+        assertThat(scan).isNotDone();
+        ack.complete(null);
+
+        assertThat(scan.join()).isEqualTo(Result.err(providerError));
+        assertThat(persistedCheckpoints).containsExactly("NEXT");
+        assertThat(completeCoverage).hasValue(0);
+        assertThat(requested).containsExactly("start", "NEXT");
+    }
+
+    @Test
+    void emptyPageWithContinuationStillRequiresAckBeforeNextFetch() {
+        var requested = new ArrayList<String>();
+        var pending = new CompletableFuture<Void>();
+        var observed = new ArrayList<FakePage>();
+        var provider = new FakeProvider(Map.of(
+                "start", Result.ok(new FakePage(0, "NEXT")),
+                "NEXT", Result.ok(new FakePage(2, null))), requested);
+
+        var scan = PageScanner.scan("start", null, 2, provider.adapter(), page -> {
+            observed.add(page);
+            return observed.size() == 1 ? pending : CompletableFuture.completedFuture(null);
+        }).toCompletableFuture();
+
+        assertThat(observed).containsExactly(new FakePage(0, "NEXT"));
+        assertThat(requested).containsExactly("start");
+        assertThat(scan).isNotDone();
+        pending.complete(null);
+
+        assertThat(scan.join()).isEqualTo(Result.ok(new ScanSummary(2, 2, Optional.empty())));
+        assertThat(requested).containsExactly("start", "NEXT");
     }
 }

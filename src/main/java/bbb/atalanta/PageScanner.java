@@ -7,13 +7,14 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
 /**
  * One reusable, bounded, page-at-a-time traversal mechanism for the three
- * historical endpoints. This is a transport orchestration helper, NOT an
+ * historical endpoints. A new page is requested only after the
+ * previous page's asynchronous acknowledgement succeeds.
+ * This is a transport orchestration helper, NOT an
  * accumulated-data result, checkpoint store or retry policy.
  *
  * <p>No explicit list of pages is accumulated. CompletionStage internals
@@ -40,7 +41,8 @@ final class PageScanner {
 
     static <Q, P> CompletionStage<Result<ScanSummary>> scan(
             Q initial, String initialToken, int maxPages,
-            Adapter<Q, P> adapter, Consumer<? super P> onPage) {
+            Adapter<Q, P> adapter,
+            Function<? super P, ? extends CompletionStage<Void>> onPage) {
         Objects.requireNonNull(initial, "initial");
         Objects.requireNonNull(adapter, "adapter");
         Objects.requireNonNull(onPage, "onPage");
@@ -53,7 +55,8 @@ final class PageScanner {
 
     private static <Q, P> CompletionStage<Result<ScanSummary>> step(
             Q query, int maxPages, Adapter<Q, P> adapter,
-            Consumer<? super P> onPage, int completed, long observed, Set<String> visited) {
+            Function<? super P, ? extends CompletionStage<Void>> onPage,
+            int completed, long observed, Set<String> visited) {
 
         return adapter.fetch().apply(query).thenCompose(response ->
                 response.<CompletionStage<Result<ScanSummary>>>fold(page -> {
@@ -68,23 +71,30 @@ final class PageScanner {
                                         "Alpaca returned a repeated historical page token")));
                     }
 
-                    // A callback exception is NOT an AlpacaError. For example,
-                    // local disk/database failure belongs to the caller's job.
-                    // It exceptionally completes this stage and stops traversal.
-                    onPage.accept(page);
-                    long nextCount = Math.addExact(observed, adapter.count().applyAsLong(page));
-                    int nextPages = completed + 1;
+                    // The callback acknowledges durability asynchronously. Its
+                    // stage MUST succeed before the next request starts, or
+                    // before this scan reports successful completion.
+                    //
+                    // Synchronous throws, null returned stages, failed stages,
+                    // and canceled stages are caller-side failures: propagate
+                    // exceptionally, never convert them into AlpacaError.
+                    CompletionStage<Void> acknowledged = Objects.requireNonNull(
+                            onPage.apply(page), "onPage returned null acknowledgement");
+                    return acknowledged.thenCompose(ignored -> {
+                        long nextCount = Math.addExact(observed, adapter.count().applyAsLong(page));
+                        int nextPages = completed + 1;
 
-                    if (token == null || nextPages == maxPages) {
-                        return CompletableFuture.completedFuture(Result.ok(
-                                new ScanSummary(nextPages, nextCount, continuation)));
-                    }
-                    var nextVisited = new HashSet<>(visited);
-                    nextVisited.add(token);
-                    Q nextQuery = Objects.requireNonNull(
-                            adapter.withPageToken().apply(query, token), "next query");
-                    return step(nextQuery, maxPages, adapter, onPage,
-                            nextPages, nextCount, Set.copyOf(nextVisited));
+                        if (token == null || nextPages == maxPages) {
+                            return CompletableFuture.completedFuture(Result.ok(
+                                    new ScanSummary(nextPages, nextCount, continuation)));
+                        }
+                        var nextVisited = new HashSet<>(visited);
+                        nextVisited.add(token);
+                        Q nextQuery = Objects.requireNonNull(
+                                adapter.withPageToken().apply(query, token), "next query");
+                        return step(nextQuery, maxPages, adapter, onPage,
+                                nextPages, nextCount, Set.copyOf(nextVisited));
+                    });
                 }, error -> CompletableFuture.completedFuture(Result.err(error))));
     }
 }

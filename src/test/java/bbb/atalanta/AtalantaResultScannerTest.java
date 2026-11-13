@@ -92,13 +92,22 @@ class AtalantaResultScannerTest {
 
         Result<ScanSummary> bars = client.scanBars(
                 CryptoBarQuery.of(List.of("BTC/USD"), CryptoTimeframe.minutes(1)),
-                3, barsDelivered::add).toCompletableFuture().join();
+                3, page -> {
+                    barsDelivered.add(page);
+                    return CompletableFuture.completedFuture(null);
+                }).toCompletableFuture().join();
         Result<ScanSummary> trades = client.scanTrades(
                 CryptoTradeQuery.of(List.of("BTC/USD")),
-                3, tradesDelivered::add).toCompletableFuture().join();
+                3, page -> {
+                    tradesDelivered.add(page);
+                    return CompletableFuture.completedFuture(null);
+                }).toCompletableFuture().join();
         Result<ScanSummary> quotes = client.scanQuotes(
                 CryptoQuoteQuery.of(List.of("BTC/USD")),
-                3, quotesDelivered::add).toCompletableFuture().join();
+                3, page -> {
+                    quotesDelivered.add(page);
+                    return CompletableFuture.completedFuture(null);
+                }).toCompletableFuture().join();
 
         var expected = Result.ok(new ScanSummary(1, 1, Optional.empty()));
         assertThat(bars).isEqualTo(expected);
@@ -133,12 +142,52 @@ class AtalantaResultScannerTest {
         var paperCalls = new AtomicInteger();
         Atalanta client = fakeClient(requests, paperCalls);
         assertThatNullPointerException().isThrownBy(
-                () -> client.scanBars(null, 1, ignored -> {}));
+                () -> client.scanBars(null, 1, ignored -> CompletableFuture.completedFuture(null)));
         assertThatNullPointerException().isThrownBy(
-                () -> client.scanTrades(null, 1, ignored -> {}));
+                () -> client.scanTrades(null, 1, ignored -> CompletableFuture.completedFuture(null)));
         assertThatNullPointerException().isThrownBy(
-                () -> client.scanQuotes(null, 1, ignored -> {}));
+                () -> client.scanQuotes(null, 1, ignored -> CompletableFuture.completedFuture(null)));
         assertThat(requests).isEmpty();
         assertThat(paperCalls).hasValue(0);
+    }
+
+    @Test
+    void allThreePublicScansWaitForDurableAcknowledgementEvenOnFinalPage() {
+        var requests = new ArrayList<HttpRequest>();
+        var paperCalls = new AtomicInteger();
+        var client = fakeClient(requests, paperCalls);
+
+        var barsAck = new CompletableFuture<Void>();
+        var tradesAck = new CompletableFuture<Void>();
+        var quotesAck = new CompletableFuture<Void>();
+
+        var bars = client.scanBars(
+                CryptoBarQuery.of(List.of("BTC/USD"), CryptoTimeframe.minutes(1)),
+                2, page -> barsAck).toCompletableFuture();
+        var trades = client.scanTrades(
+                CryptoTradeQuery.of(List.of("BTC/USD")),
+                2, page -> tradesAck).toCompletableFuture();
+        var quotes = client.scanQuotes(
+                CryptoQuoteQuery.of(List.of("BTC/USD")),
+                2, page -> quotesAck).toCompletableFuture();
+
+        assertThat(requests).hasSize(3);
+        assertThat(paperCalls).hasValue(0);
+        assertThat(bars).isNotDone();
+        assertThat(trades).isNotDone();
+        assertThat(quotes).isNotDone();
+
+        barsAck.complete(null);
+        assertThat(bars.join()).isEqualTo(Result.ok(new ScanSummary(1, 1, Optional.empty())));
+        assertThat(trades).isNotDone();
+        assertThat(quotes).isNotDone();
+
+        tradesAck.complete(null);
+        assertThat(trades.join()).isEqualTo(Result.ok(new ScanSummary(1, 1, Optional.empty())));
+        assertThat(quotes).isNotDone();
+
+        quotesAck.complete(null);
+        assertThat(quotes.join()).isEqualTo(Result.ok(new ScanSummary(1, 1, Optional.empty())));
+        assertThat(requests).hasSize(3);
     }
 }
