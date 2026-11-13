@@ -1,0 +1,15 @@
+{
+  "fixtureRevision": "1.0.0",
+  "known": {
+    "kirke": {
+      "assets.default": "Quoted maintenance_margin_requirement decimal rejects a Scientific-only field",
+      "assets.filtered_equity": "Quoted maintenance_margin_requirement decimal rejects a Scientific-only field",
+      "positions.open_mixed": "Conditional/null/omitted position fields are required by decoder"
+    },
+    "medea": {
+      "assets.default": "Quoted maintenance_margin_requirement decimal rejects a Number-only field",
+      "assets.filtered_equity": "Quoted maintenance_margin_requirement decimal rejects a Number-only field",
+      "positions.open_mixed": "Conditional/null/omitted position fields are required by decoder"
+    }
+  }
+}

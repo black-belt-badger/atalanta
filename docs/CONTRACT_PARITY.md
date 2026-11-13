@@ -22,11 +22,11 @@ Atalanta M3 fixture-set revision **`alpaca-trading-read-only/1.0.0`** lives in [
 - **Paging:** one HTTP response per request; no automatic retrieval of subsequent pages and no invented page token. ID anchor and timestamp constraints are covered in Java `OrderQueryTest` more thoroughly than in the portable pack. Pagination partial successes/failures are a future research question under proposed Metis ADR-0006.
 - **Schema coverage:** not every one of the 51 account fields or every order/position field appears as a portable check. Existing local fixtures and field-coverage documents provide fuller type/nullable validation. Expand portable checks based on observed cross-client drift rather than copying all Java record components.
 - **Market Data and streaming:** not covered. This pack is five initial read-only paper **Trading API** endpoints.
-- **Current triparity status:** Java runner verified; Kirke and Medea have **not** been modified to use this pack. Their verified compatibility remains to be established. Track that under [Atalanta #26](https://github.com/black-belt-badger/atalanta/issues/26).
+- **Current triparity status (phase 1):** Java normalized runner passes 26/26; temporary native Haskell/Rust decoder/status smoke runners each match **23/26** of the same synthetic cases. Both reject the quoted deprecated asset margin field and a mixed null/omitted position shape. Full native normalized field and HTTP query equivalence is **still unverified**. See the [evidence and decision matrix](TRIPARITY_AUDIT.md), [155-row field inventory](TRIPARITY_FIELD_INVENTORY.md), and [isolated smoke runner](../tools/triparity/README.md).
 
 ### Maintaining consistency
 
-The pack is a transport-neutral, implementation-neutral fixture contract **proposed** as a common source of truth, not an automatic new ADR. We selected Atalanta-hosted vendoring for M3 to avoid premature fourth-repository or CI infrastructure. After both CLI implementations finish their individual endpoint work, compare the same fixture IDs and results, negotiate any legitimate differences explicitly, and file per-repo implementation fixes.
+The pack is a transport-neutral, implementation-neutral fixture contract **proposed** as a common source of truth, not an automatic new ADR. We selected Atalanta-hosted vendoring for M3 to avoid premature fourth-repository or CI infrastructure. The phase-1 audit now compares the same response fixture IDs using temporary native decoder adapters. Before declaring complete parity, add cross-language normalized field and request assertions, negotiate legitimate differences explicitly, and file per-repo implementation fixes after PO review.
 
 Internal API review draft: [Atalanta #25 audit and PO decision queue](INTERNAL_API_AUDIT.md).
 
