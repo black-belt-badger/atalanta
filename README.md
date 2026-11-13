@@ -6,7 +6,7 @@
 
 **Atalanta** is a planned, independent Java library for [Alpaca's Trading and Market Data APIs](https://docs.alpaca.markets/), developed alongside [Kirke](https://github.com/black-belt-badger/kirke) (Haskell) and [Medea](https://github.com/black-belt-badger/medea) (Rust). The projects will aim for functional parity while retaining idiomatic language-specific designs.
 
-**Current status: Java 17 Maven library foundation.** The build, CI, sealed `Result<T>` and `AlpacaError` types are implemented; there are no HTTP clients, Alpaca endpoints, published packages or trading operations yet. The endpoint-facing Java API is being refined alongside Kirke and Medea.
+**Current status: Java 17 library foundation with internal asynchronous HTTP transport.** The build, CI, sealed `Result<T>` and `AlpacaError` types, and GET-only paper Trading API HTTP/JSON transport are implemented; there are **no public Alpaca endpoints**, published packages, or trading operations yet. The consumer-facing Java API is being refined alongside Kirke and Medea.
 
 ## Requirements
 
@@ -40,7 +40,13 @@ Result<Integer> value = Result.ok(21).map(n -> n * 2);
 Result<Integer> failure = Result.err(new AlpacaError.RateLimited("Rate limited"));
 ```
 
-`Result<T>` is a sealed interface with immutable `Ok<T>` and `Err<T>` records, `map`, `flatMap` and `fold`. `AlpacaError` is a sealed family of typed operational failures. Future network operations will return `CompletionStage<Result<T>>`; **no HTTP endpoint has been implemented yet**. Neither Jackson nor a JSON representation appears in these public signatures. Error descriptions provided by future transports must be sanitized and must never contain secrets or private responses.
+`Result<T>` is a sealed interface with immutable `Ok<T>` and `Err<T>` records, `map`, `flatMap` and `fold`. `AlpacaError` is a sealed family of typed operational failures. Future network operations will return `CompletionStage<Result<T>>`; **no HTTP endpoint has been implemented yet**. Neither Jackson nor a JSON representation appears in these public signatures. Error descriptions are sanitized and must never contain secrets or private responses.
+
+## Internal HTTP transport
+
+An internal, **asynchronous**, GET-only JDK 17 HTTP transport now handles Alpaca paper Trading API authentication and typed operational failures. Redirects and automatic retries are disabled. Jackson decodes and validates JSON **internally**, preserving exact decimals; no Jackson types appear in the public API.
+
+The transport is intentionally not an endpoint method and cannot yet be called through a public `Atalanta` client. See [transport design and offline tests](docs/HTTP_TRANSPORT.md) for its boundaries and an example of future endpoint integration.
 
 ## Artwork
 

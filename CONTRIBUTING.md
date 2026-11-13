@@ -35,4 +35,4 @@ Never commit Alpaca credentials, tokens, account identifiers, or unredacted acco
 
 ## Release status
 
-Atalanta is currently a **Java 17 Maven skeleton**, with no published package or implemented Alpaca endpoints. Publication and versioning will be refined under [#13](https://github.com/black-belt-badger/atalanta/issues/13). Do not claim a Maven Central release or API support before it exists.
+Atalanta currently has a **Java 17 Maven foundation and internal HTTP transport**, with no published package or implemented public Alpaca endpoints. Publication and versioning will be refined under [#13](https://github.com/black-belt-badger/atalanta/issues/13). Do not claim a Maven Central release or API support before it exists.
