@@ -1,5 +1,7 @@
 # Atalanta #25 — Internal API and ADR audit (review draft)
 
+**Pre-feature reference:** this snapshot predates historical crypto market data and paper submission/cancellation. See the [updated post-feature audit](POST_FEATURE_CONSISTENCY_AUDIT.md) for the full Java API and triparity assessment.
+
 **Baseline:** Java 17, commit `be774ce`, five read-only Alpaca paper Trading API methods. **Review only:** this document approves no code refactoring, API breakage, new library dependency or ADR status change.
 
 **Verified 2026-11-13:** `JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 mvn -q clean verify` — **143 tests in 16 suites, zero failures/errors/skips**. The existing `alpaca-trading-read-only/1.0.0` fixture pack has **26 portable contract cases** and a Java [offline contract runner](../src/test/java/bbb/atalanta/SharedTradingContractTest.java). Its parity in Haskell and Rust has **not** yet been verified. See [manifest](../contracts/alpaca-trading/v1/manifest.json) and [coverage matrix](CONTRACT_PARITY.md).

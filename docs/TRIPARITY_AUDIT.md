@@ -1,5 +1,7 @@
 # Atalanta–Kirke–Medea triparity audit — phase 1 evidence and decisions
 
+**Historical phase-1 baseline:** this document predates Atalanta M4/M5 merges. See the [post-feature consistency audit](POST_FEATURE_CONSISTENCY_AUDIT.md) for the current ten-operation inventory and open public API choices. This original evidence is retained for reproducibility.
+
 **Issue:** [Atalanta #26](https://github.com/black-belt-badger/atalanta/issues/26). **Status: review draft; no cross-language API decisions approved.** This report compares the **five common, read-only Alpaca paper Trading API endpoints**, not the extra crypto market-data or paper write operations implemented by the CLIs.
 
 **Checked revisions (2026-11-13):** Atalanta `cab230d` (audit #28 on main), Kirke `d2997ec` (cancel #56 on main), Medea `f27d9f7` (paper submit #56 on main). Fixture set `alpaca-trading-read-only/1.0.0` (26 synthetic cases, checksum-verified). See [portable manifest](../contracts/alpaca-trading/v1/manifest.json), [existing Java normalized test](../src/test/java/bbb/atalanta/SharedTradingContractTest.java), [field-by-field wire inventory](TRIPARITY_FIELD_INVENTORY.md) and [Atalanta internal audit](INTERNAL_API_AUDIT.md).
