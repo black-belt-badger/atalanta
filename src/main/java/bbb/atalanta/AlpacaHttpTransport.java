@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -30,8 +31,9 @@ import java.util.stream.Collectors;
  *
  * <p>Only this class knows the HTTP and Jackson representations. Future public
  * endpoint methods will convert successful JSON trees to immutable Java records.
- * Requests are GET-only; never follow redirects, silently retry, or expose
- * credentials and provider response bodies in errors.
+ * Read-only GETs are separate from an explicit single-order paper DELETE.
+ * Never follow redirects, silently retry, or expose credentials or provider
+ * response bodies in errors.
  */
 final class AlpacaHttpTransport {
 
@@ -98,6 +100,73 @@ final class AlpacaHttpTransport {
         // remain exceptional rather than silently being mislabeled as network faults.
         return send.apply(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
                 .handle(this::responseOrError);
+    }
+
+    /**
+     * One explicit, bodyless DELETE of a validated server-issued order UUID.
+     * Only this method mutates state. The host, timeout and redirect policy
+     * remain the same as read-only paper calls; no automatic retry occurs.
+     */
+    CompletionStage<Result<PaperCancellationAccepted>> deletePaperOrder(UUID orderId) {
+        Objects.requireNonNull(orderId, "orderId");
+        URI uri = uriFor(List.of("v2", "orders", orderId.toString()), Map.of());
+        HttpRequest request = HttpRequest.newBuilder(uri)
+                .timeout(requestTimeout)
+                .header("APCA-API-KEY-ID", keyId)
+                .header("APCA-API-SECRET-KEY", secretKey)
+                .header("Accept", "application/json")
+                .DELETE()
+                .build();
+
+        // Discard remote body bytes. A cancellation response is meaningful
+        // solely through its HTTP status, never through provider JSON.
+        return send.apply(request, HttpResponse.BodyHandlers.replacing(""))
+                .handle((response, failure) -> cancellationResponse(orderId, response, failure));
+    }
+
+    private Result<PaperCancellationAccepted> cancellationResponse(
+            UUID orderId, HttpResponse<String> response, Throwable failure) {
+        if (failure != null) {
+            Throwable cause = unwrap(failure);
+            if (cause instanceof CancellationException cancellation) {
+                throw cancellation;
+            }
+            if (cause instanceof HttpTimeoutException || cause instanceof IOException) {
+                return Result.err(new AlpacaError.CancellationOutcomeUnknown(
+                        null, "Paper cancellation outcome unknown; inspect order status"));
+            }
+            throw new CompletionException(cause);
+        }
+
+        int status = response.statusCode();
+        if (status == 204) {
+            // 204 means accepted, NOT that order.status == "canceled".
+            return Result.ok(new PaperCancellationAccepted(orderId));
+        }
+        if (status == 401) {
+            return Result.err(new AlpacaError.Authentication("Alpaca authentication failed"));
+        }
+        if (status == 403) {
+            return Result.err(new AlpacaError.Forbidden("Alpaca access denied"));
+        }
+        if (status == 404) {
+            return Result.err(new AlpacaError.OrderNotFound("Paper order not found (HTTP 404)"));
+        }
+        if (status == 422) {
+            return Result.err(new AlpacaError.OrderNotCancelable("Paper order not cancelable (HTTP 422)"));
+        }
+        if (status == 429) {
+            return Result.err(new AlpacaError.RateLimited("Alpaca rate limit exceeded"));
+        }
+        if (status >= 500 && status <= 599) {
+            return Result.err(new AlpacaError.CancellationOutcomeUnknown(
+                    status, "Paper cancellation outcome unknown after provider HTTP 5xx"));
+        }
+        if (status >= 200 && status < 300) {
+            return Result.err(new AlpacaError.InvalidResponse(
+                    "Expected HTTP 204 cancellation acknowledgment"));
+        }
+        return Result.err(new AlpacaError.HttpFailure(status, "Alpaca returned HTTP " + status));
     }
 
     private Result<JsonNode> responseOrError(HttpResponse<String> response, Throwable failure) {
