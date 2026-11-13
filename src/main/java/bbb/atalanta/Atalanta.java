@@ -12,8 +12,8 @@ import java.util.concurrent.CompletionStage;
  * ordinary provider/network failures are typed {@link Result.Err} values.
  * Unexpected programming faults or cancellation may complete exceptionally.
  *
- * <p>Only the account endpoint is implemented at present. No order placement
- * or live-trading methods are available.
+ * <p>Account and asset-list reads are supported. No order placement or
+ * live-trading methods are available.
  */
 public final class Atalanta {
 
@@ -33,6 +33,21 @@ public final class Atalanta {
     public CompletionStage<Result<Account>> account() {
         return transport.get(List.of("v2", "account"), Map.of())
                 .thenApply(json -> json.flatMap(AccountDecoder::decode));
+    }
+
+    /**
+     * List assets using Alpaca's documented defaults: us_equity, all statuses,
+     * no exchange or attribute filter. This does not imply a crypto default.
+     */
+    public CompletionStage<Result<List<Asset>>> assets() {
+        return assets(AssetQuery.defaults());
+    }
+
+    /** Read GET /v2/assets with explicit, immutable provider query filters. */
+    public CompletionStage<Result<List<Asset>>> assets(AssetQuery query) {
+        Objects.requireNonNull(query, "query");
+        return transport.get(List.of("v2", "assets"), query.toQueryParameters())
+                .thenApply(result -> result.flatMap(AssetDecoder::decode));
     }
 
     /** Avoid accidental diagnostic printing of credentials or account data. */

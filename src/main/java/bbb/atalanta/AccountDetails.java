@@ -1,11 +1,8 @@
 package bbb.atalanta;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -69,35 +66,12 @@ public record AccountDetails(
         Objects.requireNonNull(presentFields, "presentFields");
         Objects.requireNonNull(additionalFields, "additionalFields");
         presentFields = Collections.unmodifiableSet(new LinkedHashSet<>(presentFields));
-        additionalFields = immutableMap(additionalFields);
+        additionalFields = ProviderJson.immutableMap(additionalFields);
     }
 
     /** Distinguish a missing provider property from its explicit JSON null. */
     public boolean supplied(String wireField) {
         return presentFields.contains(wireField);
-    }
-
-    /** Immutable defensive conversion of only standard Java values. */
-    private static Map<String, Object> immutableMap(Map<String, Object> source) {
-        var copy = new LinkedHashMap<String, Object>();
-        source.forEach((key, value) -> copy.put(
-                Objects.requireNonNull(key, "field name"), immutableValue(value)));
-        return Collections.unmodifiableMap(copy);
-    }
-
-    private static Object immutableValue(Object value) {
-        if (value instanceof Map<?, ?> nested) {
-            var cast = new LinkedHashMap<String, Object>();
-            nested.forEach((key, item) -> cast.put(
-                    (String) Objects.requireNonNull(key, "nested field"), item));
-            return immutableMap(cast);
-        }
-        if (value instanceof List<?> list) {
-            var copy = new ArrayList<Object>();
-            list.forEach(item -> copy.add(immutableValue(item)));
-            return Collections.unmodifiableList(copy);
-        }
-        return value;
     }
 
     /** Account data can be private: avoid leaking it via automatic record toString. */

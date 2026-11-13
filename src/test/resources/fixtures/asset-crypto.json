@@ -1,0 +1,16 @@
+{
+  "id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  "class": "crypto",
+  "exchange": "CRYPTO",
+  "symbol": "BTC/USD",
+  "name": "Bitcoin / USD",
+  "status": "active",
+  "tradable": true,
+  "marginable": false,
+  "shortable": false,
+  "fractionable": true,
+  "min_order_size": "0.000000010000000001",
+  "min_trade_increment": "0.00000000000001",
+  "price_increment": "0.01",
+  "attributes": []
+}

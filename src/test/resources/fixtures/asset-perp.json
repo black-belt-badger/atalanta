@@ -1,0 +1,12 @@
+{
+  "id": "cccccccc-dddd-4eee-8fff-aaaaaaaaaaaa",
+  "class": "crypto_perp",
+  "exchange": "ASCX",
+  "symbol": "ETH/USD",
+  "name": "Example Crypto Perpetual",
+  "status": "active",
+  "tradable": true,
+  "marginable": false,
+  "shortable": false,
+  "fractionable": true
+}
