@@ -6,7 +6,7 @@
 
 **Atalanta** is a planned, independent Java library for [Alpaca's Trading and Market Data APIs](https://docs.alpaca.markets/), developed alongside [Kirke](https://github.com/black-belt-badger/kirke) (Haskell) and [Medea](https://github.com/black-belt-badger/medea) (Rust). The projects will aim for functional parity while retaining idiomatic language-specific designs.
 
-**Current status: five read-only paper Trading API endpoints, historical crypto bars, and explicit single-order paper cancellation.** Atalanta supports asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders`, `GET /v2/orders/{order_id}`, and historical `GET /v1beta3/crypto/{loc}/bars` via the separate Alpaca Market Data host. Only a deliberate `cancelPaperOrder(UUID)` call sends a paper-only `DELETE /v2/orders/{order_id}`; read operations never mutate an order. Typed Java 17 records, exact decimals and sealed `Result<T>`/`AlpacaError` semantics are used throughout. There is no live trading, automatic cancellation, cancel-all operation, or published Maven release.
+**Current status: five read-only paper Trading API endpoints, historical crypto bars and trades, and explicit single-order paper cancellation.** Atalanta supports asynchronous `GET /v2/account`, `GET /v2/assets`, `GET /v2/positions`, `GET /v2/orders`, `GET /v2/orders/{order_id}`, and historical `GET /v1beta3/crypto/{loc}/bars` and `GET /v1beta3/crypto/{loc}/trades` via the separate Alpaca Market Data host. Only a deliberate `cancelPaperOrder(UUID)` call sends a paper-only `DELETE /v2/orders/{order_id}`; read operations never mutate an order. Typed Java 17 records, exact decimals and sealed `Result<T>`/`AlpacaError` semantics are used throughout. There is no live trading, automatic cancellation, cancel-all operation, or published Maven release.
 
 ## Requirements
 
@@ -56,6 +56,26 @@ CompletionStage<CryptoBarScan> bounded = client.cryptoBarsPages(query, 3);
 `cryptoBars` fetches **one page**, exposing its opaque `nextPageToken()`. The bounded multi-page method fetches at most 20 pages; `Stopped` indicates exhaustion or a remaining token, and `Failed` retains successful pages alongside the terminal typed error. Both handle short/empty pages with continuation tokens. The `CryptoBar` record exposes exact `BigDecimal` OHLCV, optional `BigInteger` trade count and VWAP, high-precision original timestamp text and immutable unknown-provider fields. All five documented locations and provider timeframe variants are supported.
 
 Read the [complete historical crypto-bars API, request/response contract and offline-test guide](docs/CRYPTO_BARS_API.md). No broker order is created and no account state is changed.
+
+## Historical crypto trades (read-only Market Data)
+
+Historical individual trades reuse Atalanta's fixed, read-only Alpaca Market Data HTTPS transport. This Java 17 API exposes exact `BigInteger` IDs, `BigDecimal` prices/sizes, original nanosecond-resolution timestamps, optional taker-side values, and immutable future-provider fields. Trades do **not** have a timeframe parameter.
+
+```java
+CryptoTradeQuery query = CryptoTradeQuery.of(List.of("BTC/USD", "ETH/USD"))
+        .withLocation(CryptoLocation.US)
+        .withStart("2026-10-02T00:00:00.123456789Z")
+        .withEnd("2026-10-03T00:00:00Z")
+        .withLimit(1000)
+        .withSort(CryptoTradeQuery.Sort.ASC);
+
+CompletionStage<Result<CryptoTradePage>> page = client.cryptoTrades(query);
+CompletionStage<CryptoTradeScan> bounded = client.cryptoTradesPages(query, 3);
+```
+
+`cryptoTrades` fetches exactly **one provider page**, exposing its opaque continuation. `cryptoTradesPages` fetches at most 20 pages and either reports `Stopped` with a remaining token or `Failed` with successfully retrieved pages and a typed error. Even a short/empty page can have a continuation. The Alpaca limit applies **across all symbols**, not separately to each.
+
+See [historical crypto-trades contract, query/response models and offline tests](docs/CRYPTO_TRADES_API.md). This is not a trading order endpoint and never modifies paper account state.
 
 ## Account API (read-only paper trading)
 

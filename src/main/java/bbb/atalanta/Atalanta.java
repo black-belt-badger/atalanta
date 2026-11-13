@@ -196,6 +196,68 @@ public final class Atalanta {
     }
 
     /**
+     * Fetch exactly ONE historical crypto trades page. A provider continuation
+     * token is returned for explicit paging; trades have no timeframe filter.
+     */
+    public CompletionStage<Result<CryptoTradePage>> cryptoTrades(CryptoTradeQuery query) {
+        Objects.requireNonNull(query, "query");
+        if (marketData == null) {
+            throw new IllegalStateException("Historical market-data transport unavailable");
+        }
+        return marketData.get(query.location(), "trades", query.toQueryParameters())
+                .thenApply(response -> response.flatMap(CryptoTradeDecoder::decode));
+    }
+
+    /**
+     * Fetch 1-20 historical trade pages, retaining previous valid pages on
+     * a later provider error. Stopped with continuation means more data exists.
+     */
+    public CompletionStage<CryptoTradeScan> cryptoTradesPages(
+            CryptoTradeQuery query, int maxPages) {
+        Objects.requireNonNull(query, "query");
+        if (maxPages < 1 || maxPages > 20) {
+            throw new IllegalArgumentException("maxPages must be between 1 and 20");
+        }
+        var seen = new HashSet<String>();
+        if (query.pageToken() != null) {
+            seen.add(query.pageToken());
+        }
+        return cryptoTradesPages(query, maxPages, List.of(), seen);
+    }
+
+    private CompletionStage<CryptoTradeScan> cryptoTradesPages(
+            CryptoTradeQuery query, int maxPages,
+            List<CryptoTradePage> received, Set<String> seen) {
+        return cryptoTrades(query).thenCompose(result -> {
+            if (result instanceof Result.Err<CryptoTradePage> failure) {
+                return CompletableFuture.completedFuture(
+                        new CryptoTradeScan.Failed(received, failure.error()));
+            }
+            CryptoTradePage page = ((Result.Ok<CryptoTradePage>) result).value();
+            var pages = new ArrayList<>(received);
+            pages.add(page);
+            String token = page.nextPageToken();
+
+            if (token == null) {
+                return CompletableFuture.completedFuture(
+                        new CryptoTradeScan.Stopped(pages, Optional.empty()));
+            }
+            if (seen.contains(token)) {
+                return CompletableFuture.completedFuture(new CryptoTradeScan.Failed(
+                        pages, new AlpacaError.InvalidResponse(
+                                "Alpaca returned a repeated crypto trades page token")));
+            }
+            if (pages.size() >= maxPages) {
+                return CompletableFuture.completedFuture(
+                        new CryptoTradeScan.Stopped(pages, Optional.of(token)));
+            }
+            var nextSeen = new HashSet<>(seen);
+            nextSeen.add(token);
+            return cryptoTradesPages(query.withPageToken(token), maxPages, pages, nextSeen);
+        });
+    }
+
+    /**
      * Explicitly attempt cancellation of one paper order by its server UUID.
      *
      * <p>This is a real DELETE; no read operation calls it automatically.
