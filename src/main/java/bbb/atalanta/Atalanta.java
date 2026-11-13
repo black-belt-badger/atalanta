@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 
 /**
  * Java 17 client for Alpaca paper Trading API (including explicit single-order
@@ -317,6 +318,44 @@ public final class Atalanta {
             nextSeen.add(token);
             return cryptoQuotesPages(query.withPageToken(token), maxPages, pages, nextSeen);
         });
+    }
+
+    /**
+     * Experimental result-based, non-accumulating bars scan.
+     *
+     * <p>Each decoded page is delivered exactly once to onPage before another
+     * page is requested. The caller owns durable checkpoints and job policy.
+     * The callback should return only once its page is safely handled.
+     * Exceptions from onPage complete the stage exceptionally rather than
+     * becoming a provider error. No automatic retries or page retention.
+     */
+    public CompletionStage<Result<ScanSummary>> scanBars(
+            CryptoBarQuery query, int maxPages, Consumer<? super CryptoBarPage> onPage) {
+        Objects.requireNonNull(query, "query");
+        return PageScanner.scan(query, query.pageToken(), maxPages,
+                new PageScanner.Adapter<>(
+                        this::cryptoBars, CryptoBarQuery::withPageToken,
+                        CryptoBarPage::continuation, CryptoBarPage::barCount), onPage);
+    }
+
+    /** Experimental historical trades scan with the same Result contract. */
+    public CompletionStage<Result<ScanSummary>> scanTrades(
+            CryptoTradeQuery query, int maxPages, Consumer<? super CryptoTradePage> onPage) {
+        Objects.requireNonNull(query, "query");
+        return PageScanner.scan(query, query.pageToken(), maxPages,
+                new PageScanner.Adapter<>(
+                        this::cryptoTrades, CryptoTradeQuery::withPageToken,
+                        CryptoTradePage::continuation, CryptoTradePage::tradeCount), onPage);
+    }
+
+    /** Experimental historical quotes scan with the same Result contract. */
+    public CompletionStage<Result<ScanSummary>> scanQuotes(
+            CryptoQuoteQuery query, int maxPages, Consumer<? super CryptoQuotePage> onPage) {
+        Objects.requireNonNull(query, "query");
+        return PageScanner.scan(query, query.pageToken(), maxPages,
+                new PageScanner.Adapter<>(
+                        this::cryptoQuotes, CryptoQuoteQuery::withPageToken,
+                        CryptoQuotePage::continuation, CryptoQuotePage::quoteCount), onPage);
     }
 
     /**
