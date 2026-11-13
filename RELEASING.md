@@ -1,6 +1,6 @@
 # Atalanta release plan (maintainers)
 
-Atalanta is an **unpublished Java 17 library skeleton**. These notes describe release prerequisites, not an existing release procedure.
+Atalanta is an **unpublished Java 17 library under development**. Its first read-only paper account endpoint exists, but additional endpoints and the first release remain outstanding.
 
 ## Before the first release
 

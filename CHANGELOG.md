@@ -9,6 +9,7 @@ All notable user-visible changes to the Atalanta Java library will be recorded h
 - Repository governance, contributor guidance, issue/PR templates and security reporting policy.
 - Sealed Java 17 `Result<T>` and `AlpacaError` records, useful FP combinators, and offline tests.
 - Internal asynchronous paper-only HTTP transport with protected authentication, exact-decimal Jackson parsing, typed failures, redirect protection and deterministic offline tests.
+- First public read-only endpoint: `Atalanta.paper(...).account()`, returning async `Result<Account>`, exact-decimal account records, complete documented account fields, forward-compatible extension properties and synthetic contract tests.
 
 ### Limitations
-- No public Java client API, Alpaca endpoints, published Maven artifact, or trading behavior yet.
+- Only the paper account GET endpoint is implemented. No asset/position/order endpoints, published Maven artifact, or order-writing operations yet.
