@@ -33,6 +33,8 @@ Tests use **JUnit 5** and **AssertJ**, including synthetic account/assets/positi
 
 The versioned [portable Trading API contract pack](contracts/alpaca-trading/v1/README.md) contains 26 synthetic request/response/expected-outcome cases and SHA-256 integrity hashes. Java JUnit tests exercise all five public endpoints against the pack. The [phase-1 triparity audit](docs/TRIPARITY_AUDIT.md) and [reproducible Haskell/Rust decoder smoke checks](tools/triparity/README.md) found three shared fixture mismatches in each CLI; full native normalized request/response parity remains open under Atalanta #26.
 
+**After the M4/M5 feature merges:** the [post-feature consistency and triparity review](docs/POST_FEATURE_CONSISTENCY_AUDIT.md) covers all ten endpoint operations, identifies remaining shared-fixture decoder gaps and records decisions still needed before the first library release. This is an audit draft, **not an approved redesign**.
+
 ## Historical crypto bars (read-only Market Data)
 
 Historical crypto OHLCV bars are fetched from the **separate, fixed** `data.alpaca.markets` HTTPS host. The public Java 17 API is asynchronous, without a CLI or mutable global client configuration:
