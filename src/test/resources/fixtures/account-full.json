@@ -1,0 +1,22 @@
+{
+  "id":"11111111-2222-4333-8444-555555555555",
+  "account_number":"PAPER-EXAMPLE-NOT-REAL",
+  "status":"ACTIVE", "crypto_status":"APPROVED", "currency":"USD",
+  "cash":"123456789.123456789012345678901234567890",
+  "equity":"123456799.10000000000000000001",
+  "buying_power":"246913578.246913578024691357802469135780",
+  "trading_blocked":false,"account_blocked":false,"shorting_enabled":true,
+  "transfers_blocked":false,"trade_suspended_by_user":false,
+  "non_marginable_buying_power":"1000.1000000000000000000001",
+  "regt_buying_power":"25000.01","options_buying_power":"50.5",
+  "options_approved_level":3,"options_trading_level":2,"crypto_tier":1,
+  "initial_margin":"100","maintenance_margin":"60",
+  "last_maintenance_margin":"55","last_equity":"123.1",
+  "long_market_value":"10","short_market_value":"0",
+  "created_at":"2026-01-05T12:00:00.123456789Z",
+  "balance_asof":"2026-11-12","previous_close":"2026-11-12T16:00:00-05:00",
+  "daytrading_buying_power":null, "pattern_day_trader":null,
+  "admin_configurations":{"new_feature":{"enabled":true,"limit":"25.000"}},
+  "user_configurations":null,
+  "novel_balance":{"precise":123456789.1234567890123456789,"items":[null,true,"future"]}
+}
