@@ -1,0 +1,6 @@
+{
+  "asset_id":"eeeeeeee-ffff-4aaa-8bbb-cccccccccccc",
+  "symbol":"FUTURE/SYMBOL","exchange":"FUTURE_EXCHANGE",
+  "asset_class":"future_class","side":"future_side","qty":"0",
+  "new_wire_flag":false
+}

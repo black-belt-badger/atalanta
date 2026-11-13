@@ -12,8 +12,8 @@ import java.util.concurrent.CompletionStage;
  * ordinary provider/network failures are typed {@link Result.Err} values.
  * Unexpected programming faults or cancellation may complete exceptionally.
  *
- * <p>Account and asset-list reads are supported. No order placement or
- * live-trading methods are available.
+ * <p>Account, asset-list, and open-position reads are supported. No order
+ * placement or live-trading methods are available.
  */
 public final class Atalanta {
 
@@ -48,6 +48,18 @@ public final class Atalanta {
         Objects.requireNonNull(query, "query");
         return transport.get(List.of("v2", "assets"), query.toQueryParameters())
                 .thenApply(result -> result.flatMap(AssetDecoder::decode));
+    }
+
+    /**
+     * Retrieve all currently open paper-account positions.
+     *
+     * <p>GET /v2/positions has no request parameters. An empty portfolio is a
+     * successful empty immutable list, not an error. Closed positions are not
+     * included and this is not a symbol-by-symbol lookup.
+     */
+    public CompletionStage<Result<List<Position>>> positions() {
+        return transport.get(List.of("v2", "positions"), Map.of())
+                .thenApply(result -> result.flatMap(PositionDecoder::decode));
     }
 
     /** Avoid accidental diagnostic printing of credentials or account data. */

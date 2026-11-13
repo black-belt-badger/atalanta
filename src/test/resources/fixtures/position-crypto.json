@@ -1,0 +1,18 @@
+{
+  "asset_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  "symbol":"BTC/USD","exchange":"CRYPTO","asset_class":"crypto",
+  "asset_marginable":false,
+  "qty":"0.000997498123456789012345678901",
+  "qty_available":"0.000997498123456789012345678901",
+  "side":"long",
+  "avg_entry_price":"67291.123456789012345678",
+  "cost_basis":"67.123456789012345678",
+  "market_value":"67.100000000000000001",
+  "current_price":"67281.00",
+  "lastday_price":"69000",
+  "change_today":"-0.024913043478260869",
+  "unrealized_pl":"-0.023456789012345677",
+  "unrealized_plpc":"-0.000349478123456789",
+  "unrealized_intraday_pl":"-0.000000000000001",
+  "unrealized_intraday_plpc":"-0.0000000000000001"
+}
