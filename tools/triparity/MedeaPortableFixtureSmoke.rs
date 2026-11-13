@@ -1,12 +1,11 @@
 //! Experimental consumer-only decoder check of Atalanta fixture set 1.0.0.
-#![allow(clippy::needless_borrow)]
 
 use std::fs;
 use std::path::Path;
 use crate::account::decode_account;
 use crate::assets::decode_assets;
 use crate::positions::decode_positions;
-use crate::orders::{decode_orders, decode_order};
+use crate::orders::decode_orders;
 use crate::order_lookup::decode_order_lookup;
 use crate::cli::OrderId;
 use crate::client::ClientError;
