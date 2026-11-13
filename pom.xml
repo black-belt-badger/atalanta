@@ -25,9 +25,15 @@
         <maven.compiler.release>17</maven.compiler.release>
         <junit.version>5.13.4</junit.version>
         <assertj.version>3.27.7</assertj.version>
+        <jackson.version>2.22.4</jackson.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
